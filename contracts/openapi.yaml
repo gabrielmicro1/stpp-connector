@@ -152,6 +152,7 @@ components:
                 - llm_unavailable
                 - internal_error
                 - job_not_found
+                - unauthorized
               description: |
                 plan_invalid — plan validation failed after the one planning
                 repair; includes exceeding PLAN_MAX_STEPS (a VALIDATION
@@ -160,7 +161,8 @@ components:
                 output cap LLM_MAX_TOKENS. llm_unavailable — LLM endpoint
                 unreachable or erroring after retry (planning, repair, or
                 synthesis). internal_error — anything unexpected; message
-                sanitized. job_not_found — GET /v1/jobs/{job_id} only.
+                sanitized. job_not_found — GET /v1/jobs/{job_id} only. unauthorized — 401
+                responses only (missing/invalid/expired bearer token).
             message:
               type: string
     Plan:

@@ -1,4 +1,4 @@
-.PHONY: up seed test demo migrate check-contracts
+.PHONY: up seed test demo migrate check-contracts jwt
 
 up:
 	docker compose up --build -d
@@ -29,6 +29,13 @@ test:
 # Stub until phase 8 (demo-script queries + JWTs need seed + mint_jwt.py).
 demo:
 	@echo "make demo: not implemented until phase 8 (needs seeded anchors + scripts/mint_jwt.py)"
+
+# Print a dev JWT for USER_ID (default analyst-full). Runs inside the image
+# so no host venv is needed; secret comes from the compose default unless set.
+jwt:
+	@docker compose run --rm --no-deps -T \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		integration-api python /opt/stpp/scripts/mint_jwt.py $(or $(USER_ID),analyst-full)
 
 # Apply SQL migrations to the three databases (starts postgres if needed).
 # Hermetic: runs scripts/migrate.py inside the integration-api image.
