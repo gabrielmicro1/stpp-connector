@@ -4,9 +4,16 @@ up:
 	docker compose up --build -d
 	docker compose ps
 
-# Stub until phase 3 (seed_rfff.py) and phase 7 (seed_wdp.py).
-seed:
-	@echo "make seed: not implemented until phase 3 (seed_rfff.py) / phase 7 (seed_wdp.py)"
+# Seed rfff_seed from data/mock (phase 3). Hermetic: runs seed_rfff.py inside
+# the integration-api image (DSN comes from the service's env, invariant 7).
+# Phase 7 adds seed_wdp.py (wdp database) after this step.
+seed: migrate
+	docker compose run --rm \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		-v $(CURDIR)/data:/opt/stpp/data:ro \
+		integration-api python /opt/stpp/scripts/seed_rfff.py \
+		--data-dir /opt/stpp/data/mock
+	@echo "seed_wdp.py: pending phase 7"
 
 # Hermetic: tests run inside the service images; no host venv needed.
 test:
@@ -14,6 +21,10 @@ test:
 	docker compose run --rm --no-deps integration-api pytest -q
 	docker compose run --rm --no-deps mcp-server pytest -q
 	docker compose run --rm --no-deps fake-wdp pytest -q
+	docker compose run --rm --no-deps \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		-v $(CURDIR)/data:/opt/stpp/data:ro \
+		integration-api pytest -q -p no:cacheprovider /opt/stpp/scripts/tests
 
 # Stub until phase 8 (demo-script queries + JWTs need seed + mint_jwt.py).
 demo:
