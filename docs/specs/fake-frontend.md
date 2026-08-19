@@ -44,7 +44,9 @@ Elements:
 - Three demo-query preset buttons (from specs/demo-script.md) so nobody
   live-types under pressure.
 - No client-side interpretation of results beyond rendering; honesty about
-  failures comes from synthesis, not UI smoothing.
+  failures comes from synthesis, not UI smoothing. Answers (and assistant
+  transcript turns) render as markdown, sanitized before DOM insertion —
+  answer text derives from untrusted WDP results.
 
 ## Non-goals
 

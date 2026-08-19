@@ -30,7 +30,15 @@
       .meta { color: #555; margin-left: 0.4rem; }
       .summary { font-size: 0.85em; color: #666; margin-left: 1.9rem; }
       .step-error { font-size: 0.85em; color: #b00020; margin-left: 1.9rem; }
-      #answer { white-space: pre-wrap; background: #f6f6f6; padding: 0.6rem; }
+      #answer { background: #f6f6f6; padding: 0.6rem; }
+      /* Sanitized-markdown rendering (answers + assistant transcript turns) */
+      .md h1, .md h2, .md h3, .md h4 { font-size: 1rem; margin: 0.7rem 0 0.3rem; }
+      .md p, .md ul, .md ol { margin: 0.35rem 0; }
+      .md li { margin: 0.15rem 0; }
+      .md table { border-collapse: collapse; margin: 0.5rem 0; }
+      .md th, .md td { border: 1px solid #ccc; padding: 0.2rem 0.5rem; text-align: left; }
+      .md code { background: #eee; padding: 0 0.25rem; font-size: 0.9em; }
+      .md hr { border: none; border-top: 1px solid #ddd; margin: 0.7rem 0; }
       #error-panel { display: none; background: #fdd; border: 1px solid #c66; padding: 0.5rem 0.8rem; margin-top: 0.8rem; }
       #rawlog pre { background: #111; color: #ddd; padding: 0.6rem; overflow-x: auto; font-size: 0.78em; max-height: 20rem; overflow-y: auto; }
       #seq-gap { display: none; background: #b56b00; color: #fff; border-radius: 3px; padding: 0 0.4rem; margin-left: 0.5rem; font-size: 0.8em; }
@@ -65,7 +73,7 @@
     <p id="intent"></p>
     <ul id="plan"></ul>
     <h2>Answer</h2>
-    <pre id="answer"></pre>
+    <div id="answer" class="md"></div>
     <div id="error-panel"><strong id="error-code"></strong> <span id="error-message"></span></div>
     <details id="rawlog">
       <summary>Raw event log<span id="seq-gap">seq gap</span></summary>

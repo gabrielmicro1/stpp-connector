@@ -1,6 +1,16 @@
 // All DOM writes live here. Plan rows are upserted by step id so the SSE
 // stream and the polling fallback share one rendering path.
+import DOMPurify from "dompurify";
+import { marked } from "marked";
+
 const el = (id) => document.getElementById(id);
+
+// Answers are LLM output synthesized from WDP results — untrusted input per
+// the trust model — so markdown is rendered then sanitized before it touches
+// the DOM. Never innerHTML answer text directly.
+function setMarkdown(node, text) {
+  node.innerHTML = DOMPurify.sanitize(marked.parse(text ?? "", { async: false }));
+}
 
 const GLYPHS = {
   pending: "○",   // ○
@@ -79,8 +89,12 @@ export function appendTurn(role, text) {
   roleSpan.className = "role";
   roleSpan.textContent = role;
   const content = document.createElement("span");
-  content.className = "content";
-  content.textContent = text;
+  content.className = role === "assistant" ? "content md" : "content";
+  if (role === "assistant") {
+    setMarkdown(content, text);
+  } else {
+    content.textContent = text; // user turns stay literal
+  }
   li.append(roleSpan, content);
   el("transcript").appendChild(li);
 }
@@ -90,7 +104,7 @@ export function clearTranscript() {
 }
 
 export function renderAnswer(text) {
-  el("answer").textContent = text ?? "";
+  setMarkdown(el("answer"), text);
 }
 
 export function renderError(code, message) {
