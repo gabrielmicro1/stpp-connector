@@ -8,6 +8,7 @@ BASE_ENV = {
     "LLM_MODEL": "gemini-test",
     "LLM_API_KEY": "k",
     "RFFF_SEED_DATABASE_URL": "postgresql://x/rfff_seed",
+    "MCP_SERVER_URL": "http://mcp-server:8001",
 }
 
 
@@ -27,6 +28,8 @@ def test_defaults(monkeypatch):
     assert cfg.plan_max_fanout == 10
     assert cfg.planner_max_matches == 20
     assert cfg.rfff_seed_database_url == "postgresql://x/rfff_seed"
+    assert cfg.mcp_server_url == "http://mcp-server:8001"
+    assert cfg.mcp_timeout_seconds == 30.0
 
 
 def test_overrides(monkeypatch):
@@ -39,6 +42,7 @@ def test_overrides(monkeypatch):
             "PLAN_MAX_STEPS": "3",
             "PLAN_MAX_FANOUT": "2",
             "PLANNER_MAX_MATCHES": "5",
+            "MCP_TIMEOUT_SECONDS": "7.5",
         },
     )
     cfg = load_agent_config()
@@ -48,6 +52,7 @@ def test_overrides(monkeypatch):
     assert cfg.plan_max_steps == 3
     assert cfg.plan_max_fanout == 2
     assert cfg.planner_max_matches == 5
+    assert cfg.mcp_timeout_seconds == 7.5
 
 
 def test_contracts_dir_from_env(monkeypatch, tmp_path):

@@ -5,9 +5,9 @@ Lives in the integration-api process but MUST NOT import from the API layer
 (CLAUDE.md invariant 3).
 
 run_query keeps the frozen (query, user, sink) -> Outcome contract; the
-default Agent behind it is built lazily from the environment. Phase 6 wires
-the mock MCP factory; phase 7 swaps in the HTTP MCP client here without
-touching the interface.
+default Agent behind it is built lazily from the environment. Phase 7 wires
+the HTTP MCP client (MCP_SERVER_URL); tests keep injecting MockMCPFactory
+directly.
 """
 from .interface import EventSink, Outcome
 from shared.types import UserContext
@@ -20,14 +20,15 @@ def _build_default():
     from .config import load_agent_config
     from .context import PostgresContextProvider
     from .llm import make_llm_client
-    from .mcp_mock import MockMCPFactory
+    from .mcp_http import HTTPMCPFactory
     from .runner import Agent
 
     config = load_agent_config()
     return Agent(
         llm=make_llm_client(config),
-        # phase 7: replace with the HTTP MCP client (MCP_SERVER_URL)
-        mcp=MockMCPFactory(config.contracts_dir),
+        mcp=HTTPMCPFactory(
+            config.mcp_server_url, timeout=config.mcp_timeout_seconds
+        ),
         context=PostgresContextProvider(
             config.rfff_seed_database_url, config.planner_max_matches
         ),

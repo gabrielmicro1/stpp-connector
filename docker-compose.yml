@@ -38,6 +38,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mcp-server:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/v1/healthz').status==200 else 1)"]
       interval: 5s
@@ -53,10 +55,15 @@ services:
       WDP_BASE_URL: http://fake-wdp:8002
       WDP_AUTH_TOKEN: ${WDP_FAKE_TOKEN:-dev-wdp-token}
       MCP_MAX_ROWS: "200"
+      CONTRACTS_DIR: /srv/contracts
+    volumes:
+      - ./contracts:/srv/contracts:ro
     ports:
       - "8001:8001"
     depends_on:
       postgres:
+        condition: service_healthy
+      fake-wdp:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/healthz').status==200 else 1)"]

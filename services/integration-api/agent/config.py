@@ -22,6 +22,10 @@ class AgentConfig:
     planner_max_matches: int
     rfff_seed_database_url: str
     contracts_dir: Path
+    # Defaulted so existing direct constructions keep working; the loader
+    # below still hard-requires MCP_SERVER_URL from the environment.
+    mcp_server_url: str = ""
+    mcp_timeout_seconds: float = 30.0
 
 
 def find_contracts_dir() -> Path:
@@ -52,4 +56,6 @@ def load_agent_config() -> AgentConfig:
         planner_max_matches=int(os.getenv("PLANNER_MAX_MATCHES", "20")),
         rfff_seed_database_url=os.environ["RFFF_SEED_DATABASE_URL"],
         contracts_dir=find_contracts_dir(),
+        mcp_server_url=os.environ["MCP_SERVER_URL"],
+        mcp_timeout_seconds=float(os.getenv("MCP_TIMEOUT_SECONDS", "30")),
     )
