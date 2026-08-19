@@ -12,6 +12,14 @@ function setMarkdown(node, text) {
   node.innerHTML = DOMPurify.sanitize(marked.parse(text ?? "", { async: false }));
 }
 
+// Keep the single chat scroll pinned to the newest content — but only when
+// the user is already near the bottom, so reading back isn't fought.
+function scrollChat(force = false) {
+  const c = el("chat");
+  const nearBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 160;
+  if (force || nearBottom) c.scrollTop = c.scrollHeight;
+}
+
 const GLYPHS = {
   pending: "○",   // ○
   running: "⟳",   // ⟳ (spun by CSS)
@@ -78,6 +86,7 @@ export function upsertStepRow(stepId, fields) {
   }
   if (fields.summary) set(".summary", fields.summary);
   if (fields.error) set(".step-error", fields.error);
+  scrollChat();
 }
 
 // Conversation transcript (multi-turn): prior turns stay on screen; the
@@ -97,6 +106,7 @@ export function appendTurn(role, text) {
   }
   li.append(roleSpan, content);
   el("transcript").appendChild(li);
+  scrollChat(true); // a new turn always comes into view
 }
 
 export function clearTranscript() {
@@ -105,6 +115,7 @@ export function clearTranscript() {
 
 export function renderAnswer(text) {
   setMarkdown(el("answer"), text);
+  scrollChat();
 }
 
 export function renderError(code, message) {

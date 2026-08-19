@@ -5,17 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>STPP RFFF Retrieval (mock)</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 1.5rem auto; max-width: 60rem; line-height: 1.4; }
-      h1 { font-size: 1.3rem; }
-      h2 { font-size: 1rem; margin: 1.2rem 0 0.4rem; }
+      html, body { height: 100%; }
+      body { font-family: system-ui, sans-serif; margin: 0 auto; max-width: 60rem; line-height: 1.4;
+             display: flex; flex-direction: column; padding: 0 1rem; box-sizing: border-box; }
+      header, footer { flex: none; }
+      h1 { font-size: 1.3rem; margin: 0.8rem 0 0.4rem; }
+      /* One scroll region for the whole conversation; panels scroll with it. */
+      #chat { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 0.3rem; }
+      footer { border-top: 1px solid #ddd; padding: 0.5rem 0 0.8rem; }
       textarea { width: 100%; box-sizing: border-box; font: inherit; }
       #token-banner { background: #fdd; border: 1px solid #c66; padding: 0.5rem 0.8rem; display: none; }
-      .controls { display: flex; gap: 0.5rem; align-items: center; margin: 0.6rem 0; flex-wrap: wrap; }
+      .controls { display: flex; gap: 0.5rem; align-items: center; margin: 0.4rem 0; flex-wrap: wrap; }
       #presets button { margin-right: 0.4rem; }
       #mode { font-weight: 600; }
       #mode.warn { color: #b56b00; }
       #mode.failed { color: #b00020; }
       #mode.complete { color: #0a7a2f; }
+      details.panel { border-top: 1px solid #eee; margin: 0.3rem 0; }
+      details.panel > summary { cursor: pointer; font-weight: 600; padding: 0.35rem 0; }
       #plan { list-style: none; padding: 0; margin: 0; }
       #plan li { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
       .glyph { display: inline-block; width: 1.4rem; text-align: center; }
@@ -47,38 +54,49 @@
       #transcript li.user { border-left-color: #2b6cb0; }
       #transcript li.assistant { border-left-color: #0a7a2f; }
       #transcript .role { font-weight: 700; font-size: 0.8em; color: #555; display: block; }
-      #transcript .content { white-space: pre-wrap; display: block; max-height: 8rem; overflow-y: auto; font-size: 0.9em; }
+      #transcript .content { white-space: pre-wrap; display: block; font-size: 0.9em; }
+      #transcript .content.md { white-space: normal; }
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes pulse { 50% { opacity: 0.3; } }
     </style>
   </head>
   <body>
-    <h1>STPP RFFF Retrieval — mock frontend</h1>
-    <div id="token-banner">
-      No demo tokens found — run <code>make tokens</code>, then reload.
-    </div>
-    <div class="controls">
-      <label for="user">User:</label>
-      <select id="user"></select>
-      <span id="mode">idle</span>
-    </div>
-    <ul id="transcript"></ul>
-    <textarea id="query" rows="3" placeholder="Natural-language query…"></textarea>
-    <div class="controls">
-      <button id="submit">Submit</button>
-      <button id="new-convo">New conversation</button>
-      <span id="presets"></span>
-    </div>
-    <h2>Plan</h2>
-    <p id="intent"></p>
-    <ul id="plan"></ul>
-    <h2>Answer</h2>
-    <div id="answer" class="md"></div>
-    <div id="error-panel"><strong id="error-code"></strong> <span id="error-message"></span></div>
-    <details id="rawlog">
-      <summary>Raw event log<span id="seq-gap">seq gap</span></summary>
-      <pre id="log"></pre>
-    </details>
+    <header>
+      <h1>STPP RFFF Retrieval — mock frontend</h1>
+      <div id="token-banner">
+        No demo tokens found — run <code>make tokens</code>, then reload.
+      </div>
+      <div class="controls">
+        <label for="user">User:</label>
+        <select id="user"></select>
+        <span id="mode">idle</span>
+      </div>
+    </header>
+    <main id="chat">
+      <ul id="transcript"></ul>
+      <details class="panel" id="plan-panel">
+        <summary>Plan</summary>
+        <p id="intent"></p>
+        <ul id="plan"></ul>
+      </details>
+      <details class="panel" id="answer-panel">
+        <summary>Answer</summary>
+        <div id="answer" class="md"></div>
+      </details>
+      <div id="error-panel"><strong id="error-code"></strong> <span id="error-message"></span></div>
+      <details class="panel" id="rawlog">
+        <summary>Raw event log<span id="seq-gap">seq gap</span></summary>
+        <pre id="log"></pre>
+      </details>
+    </main>
+    <footer>
+      <div class="controls"><span id="presets"></span></div>
+      <textarea id="query" rows="3" placeholder="Natural-language query…"></textarea>
+      <div class="controls">
+        <button id="submit">Submit</button>
+        <button id="new-convo">New conversation</button>
+      </div>
+    </footer>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

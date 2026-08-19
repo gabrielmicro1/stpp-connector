@@ -24,6 +24,10 @@ Elements:
    shows prior turns; completed answers are appended as assistant turns.
    The conversation resets on: the New-conversation button, switching user
    (cross-user history replay is incoherent), or any non-follow-up preset.
+   Layout is chat-shaped: one scroll region holds the whole transcript (no
+   per-message scrolling), the composer is pinned at the bottom, and the
+   Plan / Answer / raw-event-log panels are collapsible dropdowns inside the
+   scroll region (collapsed by default; toggle state persists across runs).
 3. **Plan panel** — renders the `plan` event as a checklist: one row per step
    showing tool, human-readable reason, and args summary.
 4. **Progress** — `step` events tick the checklist (spinner → check/✗;
