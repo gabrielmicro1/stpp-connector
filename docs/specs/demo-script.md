@@ -14,6 +14,18 @@ reviewing_component, filters fiscal_year=2025, factor4=Prohibited Factors);
 completes in seconds; answer gives counts per component. Demonstrates: SSE
 plan + progress, observed-enum grounding, no WDP round trip needed.
 
+## Query 1b — follow-up in the same conversation (the multi-turn beat)
+
+User: `analyst-full`, same conversation as Query 1.
+Query: "How does that compare to fiscal year 2024?"
+
+Expected: the plan resolves "that" from the conversation history (aggregate
+on factor4 Prohibited Factors by reviewing component, now for FY2024 —
+grouping/filtering by fiscal year as the LLM sees fit); the answer compares
+the two years. Demonstrates: stateless multi-turn — the frontend resent the
+whole conversation as `messages`; the connector kept no state between
+requests.
+
 ## Query 2 — cross-boundary join (the architecture beat)
 
 User: `analyst-full`

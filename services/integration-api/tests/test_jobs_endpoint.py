@@ -39,6 +39,31 @@ async def test_completed_job_state_matches_stream(lifespan_client, auth_headers,
 
 
 @pytest.mark.anyio
+async def test_multi_turn_job_snapshot_includes_messages(
+    lifespan_client, auth_headers, monkeypatch
+):
+    monkeypatch.setenv("AGENT_STUB_STEP_SECONDS", "0")
+    convo = [
+        {"role": "user", "content": "how many?"},
+        {"role": "assistant", "content": "66"},
+        {"role": "user", "content": "compare to FY2024"},
+    ]
+    resp = await lifespan_client.post(
+        "/v1/query", json={"messages": convo}, headers=auth_headers
+    )
+    job_id = parse_sse(resp.text)[0][1]["job_id"]
+    job = (await lifespan_client.get(f"/v1/jobs/{job_id}", headers=auth_headers)).json()
+    assert job["messages"] == convo
+    assert job["query"] == "compare to FY2024"
+
+    # single-turn jobs don't grow a messages field
+    resp = await lifespan_client.post("/v1/query", json={"query": "q"}, headers=auth_headers)
+    job_id = parse_sse(resp.text)[0][1]["job_id"]
+    job = (await lifespan_client.get(f"/v1/jobs/{job_id}", headers=auth_headers)).json()
+    assert "messages" not in job
+
+
+@pytest.mark.anyio
 async def test_mid_stream_state_is_consistent(lifespan_client, store, auth_headers, monkeypatch):
     """The write-then-emit guarantee: while the job is still mid-flight, GET
     /v1/jobs/{id} already shows the plan the stream carries. (httpx's

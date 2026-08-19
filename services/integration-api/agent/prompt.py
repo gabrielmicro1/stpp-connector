@@ -111,6 +111,22 @@ def render_tools(tools: list) -> str:
     return "\n\n".join(blocks)
 
 
+def render_conversation_block(history: list, replay_chars: int = 2000) -> str:
+    """Prior turns, oldest first, each delimited as untrusted data. Assistant
+    turns are replayed synthesis output (WDP-derived, untrusted twice over)
+    and are truncated to replay_chars — the analyst-visible summary is what
+    matters for reference resolution, not full result tables."""
+    if not history:
+        return "(none — first turn)"
+    blocks: list = []
+    for turn in history:
+        content = turn["content"]
+        if turn["role"] == "assistant" and len(content) > replay_chars:
+            content = content[:replay_chars] + "\n… [truncated]"
+        blocks.append(f"<<<TURN role={turn['role']}\n{content}\nTURN>>>")
+    return "\n\n".join(blocks)
+
+
 def assemble_plan_prompt(
     *,
     query: str,
@@ -119,10 +135,13 @@ def assemble_plan_prompt(
     tools: list,
     plan_schema: dict,
     budgets: Budgets,
+    history: list = (),
+    replay_chars: int = 2000,
 ) -> str:
     return _fill(
         _template("plan.md"),
         {
+            "conversation_block": render_conversation_block(history, replay_chars),
             "planner_context_block": render_planner_context(planner_context),
             "catalog_block": render_catalog(catalog_matches),
             "tools_block": render_tools(tools),
@@ -188,12 +207,15 @@ def assemble_synthesis_prompt(
     step_reports: list,
     caveats: list,
     tool_names: list,
+    history: list = (),
+    replay_chars: int = 2000,
 ) -> str:
     caveats_block = "\n".join(f"- {c}" for c in caveats) if caveats else "- (none)"
     tools_block = "\n".join(f"- {n}" for n in tool_names) if tool_names else "- (none)"
     return _fill(
         _template("synthesize.md"),
         {
+            "conversation_block": render_conversation_block(history, replay_chars),
             "intent": intent,
             "query": query,
             "step_reports_block": render_step_reports(step_reports),

@@ -35,7 +35,9 @@ def _canned_plan(query: str) -> dict:
     }
 
 
-async def run_query(query: str, user: UserContext, sink: EventSink) -> Outcome:
+async def run_query(
+    query: str, user: UserContext, sink: EventSink, *, history: list[dict] = ()
+) -> Outcome:  # history unused by the stub
     delay = float(os.getenv("AGENT_STUB_STEP_SECONDS", "0.8"))
     await asyncio.sleep(delay)  # pretend to plan
     plan = _canned_plan(query)

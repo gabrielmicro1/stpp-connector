@@ -66,20 +66,33 @@ class Agent:
             plan_max_fanout=self.config.plan_max_fanout,
         )
 
-    async def run_query(self, query: str, user: UserContext, sink: EventSink) -> Outcome:
+    async def run_query(
+        self, query: str, user: UserContext, sink: EventSink, *,
+        history: list = (),
+    ) -> Outcome:
         try:
-            return await self._run(query, user, sink)
+            return await self._run(query, user, sink, history)
         except AgentError as exc:
             await sink.error(exc.code, str(exc))
             return "failed"
 
-    async def _run(self, query: str, user: UserContext, sink: EventSink) -> Outcome:
-        inputs = await self.context.load(query)
+    async def _run(
+        self, query: str, user: UserContext, sink: EventSink, history: list = ()
+    ) -> Outcome:
+        # Catalog keyword matching sees every user turn (follow-ups like
+        # "now by SSA" carry few terms on their own); assistant turns are
+        # excluded — WDP-derived text must not steer catalog selection.
+        search_text = " ".join(
+            [t["content"] for t in history if t["role"] == "user"] + [query]
+        )
+        inputs = await self.context.load(search_text)
         async with self.mcp.session(user) as session:
             tools = await session.tools_list()
             tool_index = ToolIndex.from_tools(tools)
 
-            plan = await self._plan_with_repair(query, inputs, tools, tool_index)
+            plan = await self._plan_with_repair(
+                query, inputs, tools, tool_index, history
+            )
             self._current_intent = plan["intent"]
             await sink.plan(plan)
             await sink.status("executing")
@@ -93,6 +106,8 @@ class Agent:
                 step_reports=reports,
                 caveats=inputs.planner_context.get("caveats", []),
                 tool_names=[t["name"] for t in tools],
+                history=history,
+                replay_chars=self.config.chat_replay_chars,
             )
             answer = await self.llm.complete(synthesis_prompt)
             await sink.answer(answer)
@@ -100,7 +115,9 @@ class Agent:
 
     # --- planning ----------------------------------------------------------
 
-    async def _plan_with_repair(self, query, inputs, tools, tool_index) -> dict:
+    async def _plan_with_repair(
+        self, query, inputs, tools, tool_index, history=()
+    ) -> dict:
         prompt = assemble_plan_prompt(
             query=query,
             planner_context=inputs.planner_context,
@@ -108,6 +125,8 @@ class Agent:
             tools=tools,
             plan_schema=self._schema(),
             budgets=self._budgets(),
+            history=history,
+            replay_chars=self.config.chat_replay_chars,
         )
         plan, violations = await self._plan_once(prompt, tool_index, inputs)
         if not violations:

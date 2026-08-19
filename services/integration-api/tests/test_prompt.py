@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from agent.prompt import (
+    render_conversation_block,
     Budgets,
     StepReport,
     assemble_plan_prompt,
@@ -98,9 +99,49 @@ def test_sections_in_spec_order(plan_prompt):
         plan_prompt.index("# Catalog entries matched to this query"),
         plan_prompt.index("# Available tools (this session)"),
         plan_prompt.index("# Output format"),
+        plan_prompt.index("# Conversation so far"),
         plan_prompt.index("# User query"),
     ]
     assert positions == sorted(positions)
+
+
+def test_conversation_block_rendering():
+    assert render_conversation_block([]) == "(none — first turn)"
+    history = [
+        {"role": "user", "content": "how many in FY2025?"},
+        {"role": "assistant", "content": "A" * 30},
+    ]
+    block = render_conversation_block(history, replay_chars=10)
+    assert "<<<TURN role=user\nhow many in FY2025?\nTURN>>>" in block
+    # assistant turns are truncated to replay_chars with a marker
+    assert "<<<TURN role=assistant\n" + "A" * 10 + "\n… [truncated]\nTURN>>>" in block
+    # user turns are never truncated
+    long_user = render_conversation_block(
+        [{"role": "user", "content": "B" * 30}], replay_chars=10
+    )
+    assert "B" * 30 in long_user
+
+
+def test_plan_prompt_carries_history(planner_inputs, tool_defs, plan_schema):
+    from agent.prompt import Budgets
+
+    prompt = assemble_plan_prompt(
+        query="compare to FY2024",
+        planner_context=planner_inputs.planner_context,
+        catalog_matches=planner_inputs.catalog_matches,
+        tools=tool_defs,
+        plan_schema=plan_schema,
+        budgets=Budgets(plan_max_steps=8, plan_max_fanout=10),
+        history=[{"role": "user", "content": "how many in FY2025?"},
+                 {"role": "assistant", "content": "66 total"}],
+    )
+    assert "<<<TURN role=user\nhow many in FY2025?\nTURN>>>" in prompt
+    assert "<<<TURN role=assistant\n66 total\nTURN>>>" in prompt
+    assert prompt.index("# Conversation so far") < prompt.index("# User query")
+
+
+def test_plan_prompt_without_history_shows_none(plan_prompt):
+    assert "(none — first turn)" in plan_prompt
 
 
 def test_query_is_delimited_as_untrusted(plan_prompt):
@@ -195,7 +236,9 @@ def test_synthesis_prompt_reports_gaps():
         step_reports=reports,
         caveats=["person_overall_assessment is opaque."],
         tool_names=["get_proposal", "search_personnel"],
+        history=[{"role": "user", "content": "earlier question about P-2025"}],
     )
+    assert "<<<TURN role=user\nearlier question about P-2025\nTURN>>>" in prompt
     assert "- search_personnel" in prompt
     assert "Tools available to this user" in prompt
     assert "## Step 1 — get_proposal [complete]" in prompt

@@ -17,7 +17,7 @@ BASE_ENV = {
 OPTIONAL_VARS = (
     "LLM_API_KEY", "LLM_BASE_URL", "LLM_MAX_TOKENS", "AWS_REGION",
     "PLAN_MAX_STEPS", "PLAN_MAX_FANOUT", "PLANNER_MAX_MATCHES",
-    "MCP_TIMEOUT_SECONDS",
+    "MCP_TIMEOUT_SECONDS", "CHAT_REPLAY_CHARS",
 )
 
 
@@ -38,6 +38,7 @@ def test_defaults(monkeypatch):
     assert cfg.plan_max_steps == 8
     assert cfg.plan_max_fanout == 10
     assert cfg.planner_max_matches == 20
+    assert cfg.chat_replay_chars == 2000
     assert cfg.rfff_seed_database_url == "postgresql://x/rfff_seed"
     assert cfg.mcp_server_url == "http://mcp-server:8001"
     assert cfg.mcp_timeout_seconds == 30.0

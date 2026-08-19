@@ -13,7 +13,9 @@ import asyncpg
 
 
 class JobStore(Protocol):
-    async def create_job(self, user_sub: str, query: str) -> str: ...
+    async def create_job(
+        self, user_sub: str, query: str, messages: list[dict] | None = None
+    ) -> str: ...
     async def set_status(self, job_id: str, status: str) -> None: ...
     async def append_event(self, job_id: str, seq: int, type: str, data: dict) -> None: ...
     async def save_plan(self, job_id: str, plan: dict) -> None: ...
@@ -39,11 +41,14 @@ class PostgresJobStore:
     async def connect(cls, dsn: str) -> "PostgresJobStore":
         return cls(await asyncpg.create_pool(dsn))
 
-    async def create_job(self, user_sub: str, query: str) -> str:
+    async def create_job(
+        self, user_sub: str, query: str, messages: list[dict] | None = None
+    ) -> str:
         row = await self._pool.fetchrow(
-            "INSERT INTO jobs (user_sub, query, status) VALUES ($1, $2, 'planning')"
-            " RETURNING job_id",
+            "INSERT INTO jobs (user_sub, query, status, messages)"
+            " VALUES ($1, $2, 'planning', $3::jsonb) RETURNING job_id",
             user_sub, query,
+            json.dumps(messages) if messages is not None else None,
         )
         return str(row["job_id"])
 
@@ -100,7 +105,7 @@ class PostgresJobStore:
     async def get_job(self, job_id: str) -> dict | None:
         async with self._pool.acquire() as conn:
             job = await conn.fetchrow(
-                "SELECT job_id, status, query, created_at, updated_at"
+                "SELECT job_id, status, query, messages, created_at, updated_at"
                 " FROM jobs WHERE job_id = $1",
                 job_id,
             )
@@ -115,6 +120,8 @@ class PostgresJobStore:
                 "steps": [],
                 "answer": None,
             }
+            if job["messages"] is not None:
+                out["messages"] = json.loads(job["messages"])
             plan = await conn.fetchval(
                 "SELECT plan FROM job_plans WHERE job_id = $1", job_id
             )

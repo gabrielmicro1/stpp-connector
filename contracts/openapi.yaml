@@ -30,14 +30,37 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required: [query]
-              properties:
-                query:
-                  type: string
-                  minLength: 1
-                  description: The natural-language query (untrusted user input).
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [query]
+                  properties:
+                    query:
+                      type: string
+                      minLength: 1
+                      description: |
+                        The natural-language query (untrusted user input).
+                        Single-turn shorthand for a one-message conversation.
+                - type: object
+                  additionalProperties: false
+                  required: [messages]
+                  properties:
+                    messages:
+                      type: array
+                      minItems: 1
+                      items:
+                        $ref: "#/components/schemas/ChatMessage"
+                      description: |
+                        The conversation so far, oldest first, resent in full
+                        each turn — the connector is stateless and stores no
+                        conversation between requests. The last message MUST
+                        have role "user"; it is the query being answered.
+                        History is untrusted context only: it never confers
+                        authority, and tool access is always scoped to the
+                        request's JWT. Server caps (env): CHAT_MAX_TURNS
+                        (default 20) messages and CHAT_MAX_CHARS (default
+                        32000) total content chars; breaches are rejected 422
+                        with code conversation_too_large.
       responses:
         "200":
           description: |
@@ -69,6 +92,8 @@ paths:
                 description: SSE wire format; per-event JSON payloads are defined by the schemas referenced in x-sse-events.
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
   /v1/jobs/{job_id}:
     get:
       operationId: getJob
@@ -100,6 +125,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
   /v1/healthz:
     get:
       operationId: healthz
@@ -135,6 +162,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    InvalidRequest:
+      description: |
+        Request body or parameters failed validation; error code
+        `invalid_request`, or `conversation_too_large` when the messages
+        array breaches CHAT_MAX_TURNS / CHAT_MAX_CHARS.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     Error:
       type: object
@@ -153,6 +189,8 @@ components:
                 - internal_error
                 - job_not_found
                 - unauthorized
+                - invalid_request
+                - conversation_too_large
               description: |
                 plan_invalid — plan validation failed after the one planning
                 repair; includes exceeding PLAN_MAX_STEPS (a VALIDATION
@@ -163,8 +201,26 @@ components:
                 synthesis). internal_error — anything unexpected; message
                 sanitized. job_not_found — GET /v1/jobs/{job_id} only. unauthorized — 401
                 responses only (missing/invalid/expired bearer token).
+                invalid_request — 422 request validation failure (body shape,
+                roles, empty content, last message not role user).
+                conversation_too_large — 422; messages breach CHAT_MAX_TURNS
+                or CHAT_MAX_CHARS.
             message:
               type: string
+    ChatMessage:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+          description: |
+            user — an analyst turn; assistant — a prior `answer` event's text,
+            replayed verbatim by the client.
+        content:
+          type: string
+          minLength: 1
     Plan:
       $ref: "./plan-format.json"
       description: The validated plan document (normative schema in contracts/plan-format.json).
@@ -181,6 +237,14 @@ components:
           enum: [planning, executing, synthesizing, complete, failed]
         query:
           type: string
+          description: |
+            The query being answered — for multi-turn jobs, the content of the
+            final user message.
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          description: Present only for jobs submitted with `messages`.
         created_at:
           type: string
           format: date-time

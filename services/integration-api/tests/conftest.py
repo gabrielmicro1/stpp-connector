@@ -47,6 +47,8 @@ def settings():
         sse_ping_seconds=15.0,
         jobs_retention_hours=24,
         job_max_seconds=120.0,
+        chat_max_turns=20,
+        chat_max_chars=32000,
     )
 
 
@@ -203,6 +205,7 @@ def agent_config(contracts_dir):
         plan_max_steps=8,
         plan_max_fanout=10,
         planner_max_matches=20,
+        chat_replay_chars=2000,
         rfff_seed_database_url="unused-in-tests",
         contracts_dir=contracts_dir,
     )

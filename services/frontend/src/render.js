@@ -70,6 +70,25 @@ export function upsertStepRow(stepId, fields) {
   if (fields.error) set(".step-error", fields.error);
 }
 
+// Conversation transcript (multi-turn): prior turns stay on screen; the
+// current-run panels below still reset per submit via resetPanels().
+export function appendTurn(role, text) {
+  const li = document.createElement("li");
+  li.className = role;
+  const roleSpan = document.createElement("span");
+  roleSpan.className = "role";
+  roleSpan.textContent = role;
+  const content = document.createElement("span");
+  content.className = "content";
+  content.textContent = text;
+  li.append(roleSpan, content);
+  el("transcript").appendChild(li);
+}
+
+export function clearTranscript() {
+  el("transcript").replaceChildren();
+}
+
 export function renderAnswer(text) {
   el("answer").textContent = text ?? "";
 }

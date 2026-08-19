@@ -131,6 +131,9 @@ the MCP server, not the agent.
 | `JOBS_RETENTION_HOURS` | integration-api | 24 | startup sweep |
 | `SSE_PING_SECONDS` | integration-api | 15 | heartbeat interval |
 | `PLANNER_MAX_MATCHES` | integration-api | 20 | catalog entries matched into the planning prompt |
+| `CHAT_MAX_TURNS` | integration-api | 20 | max messages per multi-turn request (422 `conversation_too_large`) |
+| `CHAT_MAX_CHARS` | integration-api | 32000 | max total content chars per multi-turn request |
+| `CHAT_REPLAY_CHARS` | integration-api | 2000 | per-assistant-turn truncation when history is replayed into prompts |
 
 ## Open items (prod) — consolidated from the design log
 

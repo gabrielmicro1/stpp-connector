@@ -9,6 +9,8 @@ class Settings:
     sse_ping_seconds: float
     jobs_retention_hours: int
     job_max_seconds: float
+    chat_max_turns: int
+    chat_max_chars: int
 
 
 def load_settings() -> Settings:
@@ -21,4 +23,6 @@ def load_settings() -> Settings:
         sse_ping_seconds=float(os.getenv("SSE_PING_SECONDS", "15")),
         jobs_retention_hours=int(os.getenv("JOBS_RETENTION_HOURS", "24")),
         job_max_seconds=float(os.getenv("JOB_MAX_SECONDS", "120")),
+        chat_max_turns=int(os.getenv("CHAT_MAX_TURNS", "20")),
+        chat_max_chars=int(os.getenv("CHAT_MAX_CHARS", "32000")),
     )

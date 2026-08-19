@@ -34,6 +34,12 @@
       #error-panel { display: none; background: #fdd; border: 1px solid #c66; padding: 0.5rem 0.8rem; margin-top: 0.8rem; }
       #rawlog pre { background: #111; color: #ddd; padding: 0.6rem; overflow-x: auto; font-size: 0.78em; max-height: 20rem; overflow-y: auto; }
       #seq-gap { display: none; background: #b56b00; color: #fff; border-radius: 3px; padding: 0 0.4rem; margin-left: 0.5rem; font-size: 0.8em; }
+      #transcript { list-style: none; padding: 0; margin: 0.6rem 0; }
+      #transcript li { padding: 0.4rem 0.6rem; border-left: 3px solid #ccc; margin-bottom: 0.4rem; background: #fafafa; }
+      #transcript li.user { border-left-color: #2b6cb0; }
+      #transcript li.assistant { border-left-color: #0a7a2f; }
+      #transcript .role { font-weight: 700; font-size: 0.8em; color: #555; display: block; }
+      #transcript .content { white-space: pre-wrap; display: block; max-height: 8rem; overflow-y: auto; font-size: 0.9em; }
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes pulse { 50% { opacity: 0.3; } }
     </style>
@@ -48,9 +54,11 @@
       <select id="user"></select>
       <span id="mode">idle</span>
     </div>
+    <ul id="transcript"></ul>
     <textarea id="query" rows="3" placeholder="Natural-language query…"></textarea>
     <div class="controls">
       <button id="submit">Submit</button>
+      <button id="new-convo">New conversation</button>
       <span id="presets"></span>
     </div>
     <h2>Plan</h2>

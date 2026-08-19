@@ -4,8 +4,11 @@ Lives in the integration-api process but MUST NOT import from the API layer
 (app/) except shared types — it must stay extractable to its own service
 (CLAUDE.md invariant 3).
 
-run_query keeps the frozen (query, user, sink) -> Outcome contract; the
-default Agent behind it is built lazily from the environment. Phase 7 wires
+run_query keeps the frozen (query, user, sink) -> Outcome contract, extended
+in phase 9 with an optional keyword-only `history` (prior conversation turns,
+oldest first, as {role, content} dicts — untrusted context for prompt
+assembly only); the default Agent behind it is built lazily from the
+environment. Phase 7 wires
 the HTTP MCP client (MCP_SERVER_URL); tests keep injecting MockMCPFactory
 directly.
 """
@@ -36,11 +39,13 @@ def _build_default():
     )
 
 
-async def run_query(query: str, user: UserContext, sink: EventSink) -> Outcome:
+async def run_query(
+    query: str, user: UserContext, sink: EventSink, *, history: list[dict] = ()
+) -> Outcome:
     global _default_agent
     if _default_agent is None:
         _default_agent = _build_default()
-    return await _default_agent.run_query(query, user, sink)
+    return await _default_agent.run_query(query, user, sink, history=history)
 
 
 def reset_default_agent() -> None:

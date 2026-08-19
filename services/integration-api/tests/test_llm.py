@@ -239,6 +239,7 @@ def config(**overrides):
         plan_max_steps=8,
         plan_max_fanout=10,
         planner_max_matches=20,
+        chat_replay_chars=2000,
         rfff_seed_database_url="x",
         contracts_dir=None,
     )

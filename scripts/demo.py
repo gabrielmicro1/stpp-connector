@@ -47,6 +47,9 @@ def render(anchors: dict[str, str]) -> str:
         "  How many proposals had Prohibited Factors on factor 4 in fiscal"
         " year 2025? Break it down by reviewing component.",
         "",
+        "Query 1b — follow-up, same conversation [user: analyst-full]",
+        "  How does that compare to fiscal year 2024?",
+        "",
         "Query 2 — cross-boundary join       [user: analyst-full]",
         f"  Give me research background on the personnel of proposal {proposal}.",
         "",

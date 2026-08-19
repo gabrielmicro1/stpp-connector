@@ -76,6 +76,29 @@ def make_agent(responses, *, agent_config, planner_inputs, contracts_dir,
     return agent, llm
 
 
+async def test_history_reaches_plan_and_synthesis_prompts(
+    agent_config, planner_inputs, contracts_dir, recording_sink
+):
+    agent, llm = make_agent(
+        [json.dumps(q1_plan()), "the answer"],
+        agent_config=agent_config, planner_inputs=planner_inputs,
+        contracts_dir=contracts_dir,
+    )
+    history = [
+        {"role": "user", "content": "how many prohibited in FY2025?"},
+        {"role": "assistant", "content": "66 across 7 components"},
+    ]
+    outcome = await agent.run_query(
+        "compare to FY2024", FULL, recording_sink, history=history
+    )
+    assert outcome == "complete"
+    plan_prompt, synthesis_prompt = llm.prompts[0], llm.prompts[-1]
+    for prompt in (plan_prompt, synthesis_prompt):
+        assert "<<<TURN role=user\nhow many prohibited in FY2025?\nTURN>>>" in prompt
+        assert "<<<TURN role=assistant\n66 across 7 components\nTURN>>>" in prompt
+    # existing single-turn call sites pass no history -> the block renders (none)
+
+
 async def test_query1_happy_path_event_sequence(
     agent_config, planner_inputs, contracts_dir, recording_sink
 ):

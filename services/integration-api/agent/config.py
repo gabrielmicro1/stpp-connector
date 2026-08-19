@@ -20,6 +20,7 @@ class AgentConfig:
     plan_max_steps: int
     plan_max_fanout: int
     planner_max_matches: int
+    chat_replay_chars: int
     rfff_seed_database_url: str
     contracts_dir: Path
     # Defaulted so existing direct constructions keep working; the loader
@@ -54,6 +55,7 @@ def load_agent_config() -> AgentConfig:
         plan_max_steps=int(os.getenv("PLAN_MAX_STEPS", "8")),
         plan_max_fanout=int(os.getenv("PLAN_MAX_FANOUT", "10")),
         planner_max_matches=int(os.getenv("PLANNER_MAX_MATCHES", "20")),
+        chat_replay_chars=int(os.getenv("CHAT_REPLAY_CHARS", "2000")),
         rfff_seed_database_url=os.environ["RFFF_SEED_DATABASE_URL"],
         contracts_dir=find_contracts_dir(),
         mcp_server_url=os.environ["MCP_SERVER_URL"],

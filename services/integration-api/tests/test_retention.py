@@ -91,6 +91,8 @@ async def test_startup_lifespan_runs_retention_sweep():
         sse_ping_seconds=15.0,
         jobs_retention_hours=24,
         job_max_seconds=120.0,
+        chat_max_turns=20,
+        chat_max_chars=32000,
     )
     app = create_app(store=store, settings=settings, run_query=fake_agent.run_query)
     async with app.router.lifespan_context(app):

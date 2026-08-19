@@ -12,13 +12,20 @@ const USERS = {
 
 // From docs/specs/demo-script.md. <PROPOSAL_NUMBER>/<NAME> are placeholders
 // substituted at load from make-generated public/anchors.json (make anchors);
-// without that file the presets keep the literal placeholders.
+// without that file the presets keep the literal placeholders. followup
+// presets continue the current conversation; all others start a new one.
 const PRESETS = [
   {
     label: "Q1 — FY2025 prohibited factors",
     user: "analyst-full",
     query:
       "How many proposals had Prohibited Factors on factor 4 in fiscal year 2025? Break it down by reviewing component.",
+  },
+  {
+    label: "Q1b — follow-up: compare FY2024",
+    user: "analyst-full",
+    followup: true,
+    query: "How does that compare to fiscal year 2024?",
   },
   {
     label: "Q2 — proposal personnel background",
@@ -44,10 +51,19 @@ const MAX_RESUBMITS = 3;
 
 let tokens = null;
 let run = null; // current run context; replaced wholesale on each submit
+// The conversation (stateless server: we resend it in full each turn).
+// Survives across runs; cleared by New conversation / user switch /
+// non-followup presets.
+let messages = [];
 
-function newRun(query, token) {
+function newConversation() {
+  messages = [];
+  ui.clearTranscript();
+}
+
+function newRun(msgs, token) {
   return {
-    query,
+    messages: msgs,
     token,
     jobId: null,
     lastSeq: null,
@@ -56,6 +72,7 @@ function newRun(query, token) {
     resubmitsLeft: MAX_RESUBMITS,
     abort: new AbortController(),
     pollTimer: null,
+    answerText: null,
   };
 }
 
@@ -90,6 +107,7 @@ function handleEvent({ event, data, raw }) {
       });
       break;
     case "answer":
+      if (ctx) ctx.answerText = data.text;
       ui.renderAnswer(data.text);
       break;
     case "error":
@@ -109,13 +127,20 @@ function handleEvent({ event, data, raw }) {
 function finalize(ctx, status) {
   ctx.done = true;
   ui.setMode(status, status === "complete" ? "complete" : "failed");
+  // A completed turn joins the conversation; a failed one leaves the user
+  // turn unanswered in history (valid — the contract only requires the
+  // final message to be role user).
+  if (status === "complete" && ctx.answerText != null) {
+    messages.push({ role: "assistant", content: ctx.answerText });
+    ui.appendTurn("assistant", ctx.answerText);
+  }
 }
 
 async function startStream(ctx) {
   ui.setMode("streaming");
   let res;
   try {
-    res = await submitQuery(ctx.token, ctx.query, ctx.abort.signal);
+    res = await submitQuery(ctx.token, ctx.messages, ctx.abort.signal);
   } catch (err) {
     if (ctx !== run) return;
     ui.logNote(`POST /v1/query failed: ${err.message}`);
@@ -197,6 +222,7 @@ function startPolling(jobId) {
     ui.logPoll(snap.body);
     ui.renderJobSnapshot(snap.body);
     if (snap.body.status === "complete" || snap.body.status === "failed") {
+      if (snap.body.answer != null) ctx.answerText = snap.body.answer;
       return finalize(ctx, snap.body.status);
     }
     ui.setMode(`reconnecting (polling every 2s) — ${snap.body.status}`, "warn");
@@ -219,9 +245,12 @@ function submit() {
     run.abort.abort();
     clearTimeout(run.pollTimer);
   }
-  run = newRun(query, token);
+  messages.push({ role: "user", content: query });
+  ui.appendTurn("user", query);
+  run = newRun([...messages], token);
   ui.resetPanels();
-  ui.logNote(`submitting as ${user}: ${query}`);
+  document.getElementById("query").value = "";
+  ui.logNote(`submitting as ${user} (turn ${messages.length}): ${query}`);
   startStream(run);
 }
 
@@ -243,17 +272,23 @@ async function boot() {
   } catch {
     // presets keep their literal placeholders
   }
+  // Cross-user history replay is incoherent (analyst-local must not carry
+  // analyst-full's WDP answers), so switching user starts a fresh
+  // conversation. Programmatic .value writes from presets don't fire this.
+  userSel.addEventListener("change", newConversation);
   const presetSpan = document.getElementById("presets");
   for (const preset of PRESETS) {
     const btn = document.createElement("button");
     btn.textContent = preset.label;
     btn.addEventListener("click", () => {
+      if (!preset.followup) newConversation();
       document.getElementById("query").value = preset.query;
       userSel.value = preset.user;
     });
     presetSpan.appendChild(btn);
   }
   document.getElementById("submit").addEventListener("click", submit);
+  document.getElementById("new-convo").addEventListener("click", newConversation);
 
   try {
     const res = await fetch("/tokens.json");
@@ -276,5 +311,8 @@ window.__stpp = {
   abortStream: () => run?.abort.abort(),
   get state() {
     return run;
+  },
+  get messages() {
+    return messages;
   },
 };

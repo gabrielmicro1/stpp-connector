@@ -19,7 +19,11 @@ Elements:
    live per-user-scoping demo control.
 2. **Query box + submit** — POSTs to `/v1/query` with the JWT, opens the SSE
    stream (fetch + ReadableStream; EventSource can't set Authorization
-   headers).
+   headers). Sends the full conversation as `messages` (the page keeps it
+   client-side; the server is stateless). A **transcript** above the box
+   shows prior turns; completed answers are appended as assistant turns.
+   The conversation resets on: the New-conversation button, switching user
+   (cross-user history replay is incoherent), or any non-follow-up preset.
 3. **Plan panel** — renders the `plan` event as a checklist: one row per step
    showing tool, human-readable reason, and args summary.
 4. **Progress** — `step` events tick the checklist (spinner → check/✗;
@@ -44,4 +48,5 @@ Elements:
 
 ## Non-goals
 
-Auth flows, styling polish, mobile, multiple concurrent jobs, history.
+Auth flows, styling polish, mobile, multiple concurrent jobs, server-side
+history (the conversation lives in the page and is resent each turn).

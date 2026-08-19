@@ -18,12 +18,12 @@ class MemoryJobStore:
         self.events = {}  # job_id -> list[dict payload]
         self.event_types = {}  # job_id -> list[str]
 
-    async def create_job(self, user_sub, query):
+    async def create_job(self, user_sub, query, messages=None):
         job_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
         self.jobs[job_id] = {
             "user_sub": user_sub, "query": query, "status": "planning",
-            "created_at": now, "updated_at": now,
+            "messages": messages, "created_at": now, "updated_at": now,
         }
         self.events[job_id] = []
         self.event_types[job_id] = []
@@ -76,6 +76,8 @@ class MemoryJobStore:
             "steps": [],
             "answer": None,
         }
+        if job["messages"] is not None:
+            out["messages"] = job["messages"]
         if job_id in self.plans:
             out["plan"] = self.plans[job_id]
         out["steps"] = [

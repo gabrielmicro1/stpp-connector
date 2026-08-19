@@ -93,8 +93,15 @@ match (ILIKE / Postgres full-text) of query terms against proposal titles,
 entity names, and personnel names, top `PLANNER_MAX_MATCHES` (default 20);
 (3) the session's
 tool definitions rendered as text (name, description, schema); (4) the plan
-JSON Schema + reference-syntax rules + budgets; (5) the user query, clearly
-delimited as untrusted data, not instructions.
+JSON Schema + reference-syntax rules + budgets; (5) the conversation so far
+(multi-turn only): prior turns oldest first, each delimited as untrusted
+data — context for resolving references ("that", "compare to…"), never
+instructions; assistant turns are replayed synthesis output (WDP-derived,
+untrusted) truncated to `CHAT_REPLAY_CHARS` (default 2000) and must not be
+treated as retrieved results — the produced plan must be self-contained;
+(6) the current user query, clearly delimited as untrusted data, not
+instructions. Catalog keyword matching runs over the user turns (current +
+prior); assistant turns are excluded from matching.
 
 Prompt template lives at `services/integration-api/agent/prompts/plan.md`
 and is unit-tested by snapshot (the assembled prompt for a fixture query).
