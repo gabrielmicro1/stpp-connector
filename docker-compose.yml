@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: stpp
+      POSTGRES_PASSWORD: stpp
+      POSTGRES_DB: postgres
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stpp -d rfff_seed"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  integration-api:
+    build: ./services/integration-api
+    environment:
+      PORT: "8000"
+      RFFF_SEED_DATABASE_URL: postgresql://stpp:stpp@postgres:5432/rfff_seed
+      JOBS_DATABASE_URL: postgresql://stpp:stpp@postgres:5432/jobs
+      JWT_SECRET: ${JWT_SECRET:-dev-demo-secret}
+      MCP_SERVER_URL: http://mcp-server:8001
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/v1/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcp-server:
+    build: ./services/mcp-server
+    environment:
+      PORT: "8001"
+      RFFF_SEED_DATABASE_URL: postgresql://stpp:stpp@postgres:5432/rfff_seed
+      JWT_SECRET: ${JWT_SECRET:-dev-demo-secret}
+      WDP_BASE_URL: http://fake-wdp:8002
+      WDP_AUTH_TOKEN: ${WDP_FAKE_TOKEN:-dev-wdp-token}
+      MCP_MAX_ROWS: "200"
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  fake-wdp:
+    build: ./services/fake-wdp
+    environment:
+      PORT: "8002"
+      WDP_DATABASE_URL: postgresql://stpp:stpp@postgres:5432/wdp
+      WDP_FAKE_TOKEN: ${WDP_FAKE_TOKEN:-dev-wdp-token}
+      FAKE_WDP_DENY_ORCIDS: ${FAKE_WDP_DENY_ORCIDS:-}
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8002/v1/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build: ./services/frontend
+    environment:
+      PORT: "5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      integration-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
