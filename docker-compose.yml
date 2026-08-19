@@ -80,6 +80,10 @@ services:
     build: ./services/frontend
     environment:
       PORT: "5173"
+      API_PROXY_TARGET: http://integration-api:8000
+    volumes:
+      - ./services/frontend:/srv
+      - /srv/node_modules
     ports:
       - "5173:5173"
     depends_on:

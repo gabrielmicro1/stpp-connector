@@ -1,4 +1,4 @@
-.PHONY: up seed test demo migrate check-contracts jwt
+.PHONY: up seed test demo migrate check-contracts jwt tokens
 
 up:
 	docker compose up --build -d
@@ -36,6 +36,17 @@ jwt:
 	@docker compose run --rm --no-deps -T \
 		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
 		integration-api python /opt/stpp/scripts/mint_jwt.py $(or $(USER_ID),analyst-full)
+
+# Bake the two demo JWTs into the frontend as a static file (gitignored).
+# The frontend fetches /tokens.json at load; missing file => in-UI banner.
+tokens:
+	@mkdir -p services/frontend/public
+	@docker compose run --rm --no-deps -T \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		integration-api python /opt/stpp/scripts/mint_jwt.py --all \
+	| awk -F'\t' 'BEGIN{print "{"} NF==2{if(n++)printf ",\n"; printf "  \"%s\": \"%s\"", $$1, $$2} END{print "\n}"}' \
+	> services/frontend/public/tokens.json
+	@echo "wrote services/frontend/public/tokens.json"
 
 # Apply SQL migrations to the three databases (starts postgres if needed).
 # Hermetic: runs scripts/migrate.py inside the integration-api image.

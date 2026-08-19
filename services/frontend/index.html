@@ -4,10 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>STPP RFFF Retrieval (mock)</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1.5rem auto; max-width: 60rem; line-height: 1.4; }
+      h1 { font-size: 1.3rem; }
+      h2 { font-size: 1rem; margin: 1.2rem 0 0.4rem; }
+      textarea { width: 100%; box-sizing: border-box; font: inherit; }
+      #token-banner { background: #fdd; border: 1px solid #c66; padding: 0.5rem 0.8rem; display: none; }
+      .controls { display: flex; gap: 0.5rem; align-items: center; margin: 0.6rem 0; flex-wrap: wrap; }
+      #presets button { margin-right: 0.4rem; }
+      #mode { font-weight: 600; }
+      #mode.warn { color: #b56b00; }
+      #mode.failed { color: #b00020; }
+      #mode.complete { color: #0a7a2f; }
+      #plan { list-style: none; padding: 0; margin: 0; }
+      #plan li { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
+      .glyph { display: inline-block; width: 1.4rem; text-align: center; }
+      li.running .glyph { animation: spin 1s linear infinite; }
+      li.complete .glyph { color: #0a7a2f; }
+      li.failed .glyph { color: #b00020; }
+      li.repairing { background: #fff3d6; }
+      li.repairing .glyph { color: #b56b00; animation: pulse 1s ease-in-out infinite; }
+      .state-label { color: #b56b00; font-style: italic; margin-left: 0.4rem; }
+      .tool { font-weight: 700; }
+      .args { font-family: monospace; font-size: 0.85em; color: #555; margin-left: 0.4rem; }
+      .meta { color: #555; margin-left: 0.4rem; }
+      .summary { font-size: 0.85em; color: #666; margin-left: 1.9rem; }
+      .step-error { font-size: 0.85em; color: #b00020; margin-left: 1.9rem; }
+      #answer { white-space: pre-wrap; background: #f6f6f6; padding: 0.6rem; }
+      #error-panel { display: none; background: #fdd; border: 1px solid #c66; padding: 0.5rem 0.8rem; margin-top: 0.8rem; }
+      #rawlog pre { background: #111; color: #ddd; padding: 0.6rem; overflow-x: auto; font-size: 0.78em; max-height: 20rem; overflow-y: auto; }
+      #seq-gap { display: none; background: #b56b00; color: #fff; border-radius: 3px; padding: 0 0.4rem; margin-left: 0.5rem; font-size: 0.8em; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes pulse { 50% { opacity: 0.3; } }
+    </style>
   </head>
   <body>
     <h1>STPP RFFF Retrieval — mock frontend</h1>
-    <p id="status">phase 1 scaffold</p>
+    <div id="token-banner">
+      No demo tokens found — run <code>make tokens</code>, then reload.
+    </div>
+    <div class="controls">
+      <label for="user">User:</label>
+      <select id="user"></select>
+      <span id="mode">idle</span>
+    </div>
+    <textarea id="query" rows="3" placeholder="Natural-language query…"></textarea>
+    <div class="controls">
+      <button id="submit">Submit</button>
+      <span id="presets"></span>
+    </div>
+    <h2>Plan</h2>
+    <p id="intent"></p>
+    <ul id="plan"></ul>
+    <h2>Answer</h2>
+    <pre id="answer"></pre>
+    <div id="error-panel"><strong id="error-code"></strong> <span id="error-message"></span></div>
+    <details id="rawlog">
+      <summary>Raw event log<span id="seq-gap">seq gap</span></summary>
+      <pre id="log"></pre>
+    </details>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
