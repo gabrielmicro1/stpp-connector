@@ -36,10 +36,14 @@ let runBlock = null;
 export function beginRun() {
   const li = document.createElement("li");
   li.className = "agent";
+  // Open while the run streams; endRun() collapses it once the answer
+  // lands (native <details>, so it stays click-expandable afterwards).
   li.innerHTML =
-    '<span class="role">agent</span>' +
-    '<p class="agent-status">planning…</p>' +
-    '<p class="intent"></p><ul class="plan"></ul>';
+    '<details class="agent-details" open>' +
+    '<summary><span class="role">agent</span>' +
+    '<span class="agent-summary">planning…</span></summary>' +
+    '<p class="intent"></p><ul class="plan"></ul>' +
+    "</details>";
   el("transcript").appendChild(li);
   runBlock = li;
   scrollChat(true);
@@ -54,8 +58,20 @@ function ensureRunBlock() {
 // before its plan event would otherwise say planning… forever).
 export function endRun(status) {
   if (!runBlock) return;
-  const s = runBlock.querySelector(".agent-status");
-  if (s.textContent) s.textContent = status === "complete" ? "" : "planning failed";
+  const s = runBlock.querySelector(".agent-summary");
+  const steps = [...runBlock.querySelectorAll(".plan > li")];
+  const failed = steps.filter((li) => li.classList.contains("failed")).length;
+  let label = s.textContent === "planning…"
+    ? (status === "complete" ? "" : "planning failed")
+    : s.textContent;
+  if (steps.length) {
+    const n = `${steps.length} step${steps.length === 1 ? "" : "s"}`;
+    const tally = failed ? `${n} · ${failed} failed` : `${n} ✓`;
+    label = label ? `${label} — ${tally}` : tally;
+  }
+  s.textContent = label;
+  runBlock.querySelector(".agent-details").open = false;
+  scrollChat();
 }
 
 export function resetPanels() {
@@ -71,8 +87,10 @@ export function setMode(text, cls = "") {
 
 export function renderPlan(plan) {
   const block = ensureRunBlock();
-  block.querySelector(".agent-status").textContent = "";
-  block.querySelector(".intent").textContent = plan.intent || "";
+  const intent = plan.intent || "";
+  block.querySelector(".agent-summary").textContent =
+    intent.length > 90 ? intent.slice(0, 90) + "…" : intent;
+  block.querySelector(".intent").textContent = intent;
   block.querySelector(".plan").replaceChildren();
   for (const step of plan.steps || []) {
     upsertStepRow(step.id, {

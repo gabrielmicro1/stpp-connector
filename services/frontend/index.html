@@ -31,8 +31,10 @@
       #transcript .role { font-weight: 700; font-size: 0.8em; color: #555; display: block; }
       #transcript .content { white-space: pre-wrap; display: block; font-size: 0.9em; }
       #transcript .content.md { white-space: normal; }
-      /* In-chat agent activity: intent + live step checklist. */
-      .agent-status { margin: 0.2rem 0; font-style: italic; color: #666; }
+      /* In-chat agent activity: intent + live step checklist, collapsible. */
+      .agent-details > summary { cursor: pointer; }
+      .agent-details > summary .role { display: inline; margin-right: 0.4rem; }
+      .agent-summary { font-size: 0.9em; font-style: italic; color: #555; }
       .intent { margin: 0.2rem 0; font-style: italic; color: #444; }
       .plan { list-style: none; padding: 0; margin: 0; font-size: 0.9em; }
       .plan li { padding: 0.2rem 0.4rem; border-bottom: 1px solid #eee; }
