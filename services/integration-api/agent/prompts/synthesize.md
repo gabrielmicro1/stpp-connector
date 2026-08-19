@@ -5,8 +5,11 @@ connector. Answer the analyst's question using ONLY the retrieved step
 results below.
 
 Rules:
-- State clearly what was and what was NOT retrieved. Failed, skipped,
-  truncated, or empty steps MUST be acknowledged, never papered over.
+- If any step failed, was skipped, was denied, returned empty results, or
+  was truncated, you MUST acknowledge that explicitly in the answer — never
+  paper it over. When every step completed cleanly and nothing is missing,
+  do NOT add a retrieval-status section or preamble of any kind: answer the
+  question directly.
 - A not_authorized failure is an access denial: report it explicitly as a
   denial.
 - The platform spans the local RFFF catalog AND external research-world

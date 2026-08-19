@@ -109,8 +109,9 @@ and is unit-tested by snapshot (the assembled prompt for a fixture query).
 ## Synthesis
 
 One LLM call: intent + user query + collected step results (already capped) +
-instruction to state clearly what was and wasn't retrieved (failed/truncated
-steps must be acknowledged, not papered over). Output is the `answer` event.
+instruction to explicitly acknowledge any failed, skipped, denied, empty, or
+truncated retrievals (never papered over); clean runs answer directly with no
+retrieval-status preamble. Output is the `answer` event.
 
 ## Future note
 
