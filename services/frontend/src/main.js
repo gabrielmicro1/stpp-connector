@@ -107,8 +107,7 @@ function handleEvent({ event, data, raw }) {
       });
       break;
     case "answer":
-      if (ctx) ctx.answerText = data.text;
-      ui.renderAnswer(data.text);
+      if (ctx) ctx.answerText = data.text; // appended as the assistant turn on done
       break;
     case "error":
       ui.renderError(data.code, data.message);
@@ -127,6 +126,7 @@ function handleEvent({ event, data, raw }) {
 function finalize(ctx, status) {
   ctx.done = true;
   ui.setMode(status, status === "complete" ? "complete" : "failed");
+  ui.endRun(status);
   // A completed turn joins the conversation; a failed one leaves the user
   // turn unanswered in history (valid — the contract only requires the
   // final message to be role user).
@@ -249,6 +249,7 @@ function submit() {
   ui.appendTurn("user", query);
   run = newRun([...messages], token);
   ui.resetPanels();
+  ui.beginRun();
   document.getElementById("query").value = "";
   ui.logNote(`submitting as ${user} (turn ${messages.length}): ${query}`);
   startStream(run);

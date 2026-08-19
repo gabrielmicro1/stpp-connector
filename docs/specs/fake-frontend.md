@@ -25,9 +25,11 @@ Elements:
    The conversation resets on: the New-conversation button, switching user
    (cross-user history replay is incoherent), or any non-follow-up preset.
    Layout is chat-shaped: one scroll region holds the whole transcript (no
-   per-message scrolling), the composer is pinned at the bottom, and the
-   Plan / Answer / raw-event-log panels are collapsible dropdowns inside the
-   scroll region (collapsed by default; toggle state persists across runs).
+   per-message scrolling) and the composer is pinned at the bottom. Each
+   submitted query renders an in-chat agent-activity block — plan intent +
+   the live step checklist ticking as `step` events arrive — between the
+   user turn and the assistant answer; blocks from earlier turns stay in
+   the transcript. The raw-event-log dropdown remains below the transcript.
 3. **Plan panel** — renders the `plan` event as a checklist: one row per step
    showing tool, human-readable reason, and args summary.
 4. **Progress** — `step` events tick the checklist (spinner → check/✗;

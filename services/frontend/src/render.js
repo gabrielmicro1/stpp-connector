@@ -28,10 +28,37 @@ const GLYPHS = {
   failed: "✗",    // ✗
 };
 
+// The current run's agent-activity block in the transcript (Claude-Code
+// style: plan + live step ticks render inline in the chat, before the
+// assistant answer). One block per submitted query; old blocks stay.
+let runBlock = null;
+
+export function beginRun() {
+  const li = document.createElement("li");
+  li.className = "agent";
+  li.innerHTML =
+    '<span class="role">agent</span>' +
+    '<p class="agent-status">planning…</p>' +
+    '<p class="intent"></p><ul class="plan"></ul>';
+  el("transcript").appendChild(li);
+  runBlock = li;
+  scrollChat(true);
+}
+
+function ensureRunBlock() {
+  if (!runBlock || !runBlock.isConnected) beginRun();
+  return runBlock;
+}
+
+// Clear the "planning…" placeholder once the run ends (a job that dies
+// before its plan event would otherwise say planning… forever).
+export function endRun(status) {
+  if (!runBlock) return;
+  const s = runBlock.querySelector(".agent-status");
+  if (s.textContent) s.textContent = status === "complete" ? "" : "planning failed";
+}
+
 export function resetPanels() {
-  el("intent").textContent = "";
-  el("plan").replaceChildren();
-  el("answer").textContent = "";
   el("log").textContent = "";
   el("seq-gap").style.display = "none";
   clearError();
@@ -43,8 +70,10 @@ export function setMode(text, cls = "") {
 }
 
 export function renderPlan(plan) {
-  el("intent").textContent = plan.intent || "";
-  el("plan").replaceChildren();
+  const block = ensureRunBlock();
+  block.querySelector(".agent-status").textContent = "";
+  block.querySelector(".intent").textContent = plan.intent || "";
+  block.querySelector(".plan").replaceChildren();
   for (const step of plan.steps || []) {
     upsertStepRow(step.id, {
       status: "pending",
@@ -56,7 +85,8 @@ export function renderPlan(plan) {
 }
 
 export function upsertStepRow(stepId, fields) {
-  let li = el("plan").querySelector(`li[data-step-id="${stepId}"]`);
+  const planEl = ensureRunBlock().querySelector(".plan");
+  let li = planEl.querySelector(`li[data-step-id="${stepId}"]`);
   if (!li) {
     li = document.createElement("li");
     li.dataset.stepId = stepId;
@@ -65,7 +95,7 @@ export function upsertStepRow(stepId, fields) {
       '<span class="state-label"></span><span class="reason"></span>' +
       '<span class="args"></span><span class="meta"></span>' +
       '<div class="summary"></div><div class="step-error"></div>';
-    el("plan").appendChild(li);
+    planEl.appendChild(li);
   }
   const set = (sel, text) => { li.querySelector(sel).textContent = text; };
   if (fields.tool !== undefined) set(".tool", fields.tool);
@@ -113,11 +143,6 @@ export function clearTranscript() {
   el("transcript").replaceChildren();
 }
 
-export function renderAnswer(text) {
-  setMarkdown(el("answer"), text);
-  scrollChat();
-}
-
 export function renderError(code, message) {
   el("error-code").textContent = code;
   el("error-message").textContent = message;
@@ -141,7 +166,7 @@ export function renderJobSnapshot(job) {
       error: step.error ?? undefined,
     });
   }
-  if (job.answer != null) renderAnswer(job.answer);
+  // job.answer reaches the transcript via finalize() (assistant turn).
   const err = job.error?.error;
   if (err) renderError(err.code, err.message);
 }
