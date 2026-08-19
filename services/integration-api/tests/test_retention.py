@@ -4,6 +4,7 @@ import pytest
 
 from app.config import Settings
 from app.main import create_app
+from tests import fake_agent
 from tests.conftest import TEST_SECRET
 from tests.memory_store import MemoryJobStore
 
@@ -91,6 +92,6 @@ async def test_startup_lifespan_runs_retention_sweep():
         jobs_retention_hours=24,
         job_max_seconds=120.0,
     )
-    app = create_app(store=store, settings=settings)
+    app = create_app(store=store, settings=settings, run_query=fake_agent.run_query)
     async with app.router.lifespan_context(app):
         assert old not in store.jobs  # swept at startup

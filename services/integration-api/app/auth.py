@@ -41,4 +41,5 @@ async def require_user(
         name=claims.get("name", ""),
         component=claims.get("component", ""),
         roles=tuple(claims.get("roles", ())),
+        token=credentials.credentials,
     )

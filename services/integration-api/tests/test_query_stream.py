@@ -3,6 +3,7 @@ import pytest
 
 from app.config import Settings
 from app.main import create_app
+from tests import fake_agent
 from tests.conftest import TEST_SECRET, parse_sse
 from tests.memory_store import MemoryJobStore
 
@@ -45,7 +46,7 @@ async def test_heartbeat_pings_flow(auth_headers, monkeypatch):
         jobs_retention_hours=24,
         job_max_seconds=120.0,
     )
-    app = create_app(store=store, settings=settings)
+    app = create_app(store=store, settings=settings, run_query=fake_agent.run_query)
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -72,7 +73,7 @@ async def test_budget_exceeded_wall_clock(auth_headers, monkeypatch):
         jobs_retention_hours=24,
         job_max_seconds=0.1,
     )
-    app = create_app(store=store, settings=settings)
+    app = create_app(store=store, settings=settings, run_query=fake_agent.run_query)
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

@@ -42,3 +42,27 @@ def test_garbage_token_401(client):
 
 def test_healthz_needs_no_auth(client):
     assert client.get("/v1/healthz").status_code == 200
+
+
+@pytest.mark.anyio
+async def test_user_context_carries_raw_token(app, settings):
+    from types import SimpleNamespace
+
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    from app.auth import require_user
+
+    token = make_token()
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(settings=settings)))
+    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    user = await require_user(request, creds)
+    assert user.token == token
+
+
+def test_user_context_repr_excludes_token():
+    from shared.types import UserContext
+
+    user = UserContext(
+        sub="s", name="n", component="c", roles=("rfff_reader",), token="secret-jwt"
+    )
+    assert "secret-jwt" not in repr(user)

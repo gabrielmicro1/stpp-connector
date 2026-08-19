@@ -27,6 +27,12 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-4096}
+      AWS_REGION: ${AWS_REGION:-}
+      CONTRACTS_DIR: /srv/contracts
+    volumes:
+      - ./contracts:/srv/contracts:ro
     ports:
       - "8000:8000"
     depends_on:

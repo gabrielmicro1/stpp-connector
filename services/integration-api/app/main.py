@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from agent import run_query
+from agent import run_query as agent_run_query
 from shared.types import UserContext
 
 from .auth import UnauthorizedError, require_user, unauthorized_handler
@@ -32,6 +32,7 @@ def sse_format(type: str, payload: dict) -> str:
 async def _run_job(
     store: JobStore, sink: JobEventSink, job_id: str,
     query: str, user: UserContext, job_max_seconds: float,
+    run_query=agent_run_query,
 ) -> None:
     outcome = "failed"
     try:
@@ -47,7 +48,12 @@ async def _run_job(
     await sink.done(final)
 
 
-def create_app(*, store: JobStore | None = None, settings: Settings | None = None) -> FastAPI:
+def create_app(
+    *,
+    store: JobStore | None = None,
+    settings: Settings | None = None,
+    run_query=agent_run_query,
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         setup_json_logging()
@@ -81,7 +87,8 @@ def create_app(*, store: JobStore | None = None, settings: Settings | None = Non
         sink = JobEventSink(st.store, job_id, queue)
         await sink.job()  # first event, persisted before the stream opens
         task = asyncio.create_task(
-            _run_job(st.store, sink, job_id, body.query, user, st.settings.job_max_seconds)
+            _run_job(st.store, sink, job_id, body.query, user,
+                     st.settings.job_max_seconds, run_query=run_query)
         )
         # The job survives client disconnect: the task is not tied to the
         # generator below; a dropped stream is recovered via GET /v1/jobs/{id}.

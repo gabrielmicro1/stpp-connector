@@ -1,15 +1,14 @@
-"""Phase-4 stub agent: canned plan + fake progress with delays.
+"""Scripted fake agent for API-layer tests (the phase-4 stub, relocated).
 
-Phase 6 replaces this module's internals with the real planner/executor;
-the run_query signature and EventSink protocol in interface.py are the
-permanent contract and MUST NOT change shape.
+Implements the frozen run_query contract with a canned plan and
+AGENT_STUB_STEP_SECONDS-paced progress, so the SSE/lifecycle/budget tests
+exercise the API layer without an LLM. Injected via create_app(run_query=...).
 """
 import asyncio
 import os
 
+from agent.interface import EventSink, Outcome
 from shared.types import UserContext
-
-from .interface import EventSink, Outcome
 
 
 def _canned_plan(query: str) -> dict:
@@ -63,8 +62,7 @@ async def run_query(query: str, user: UserContext, sink: EventSink) -> Outcome:
     await sink.status("synthesizing")
     await asyncio.sleep(delay)
     await sink.answer(
-        "[stub] Canned answer for demo purposes — the real agent lands in "
-        f"phase 6. Your query was: {query!r} (run as {user.sub}, "
-        f"roles={list(user.roles)})."
+        f"[fake] Canned answer. Your query was: {query!r} (run as "
+        f"{user.sub}, roles={list(user.roles)})."
     )
     return "complete"
