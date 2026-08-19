@@ -12,7 +12,18 @@ BASE_ENV = {
 }
 
 
+# Optional vars with defaults under test: clear them so values inherited from
+# the container env (compose passes .env through) can't leak into assertions.
+OPTIONAL_VARS = (
+    "LLM_API_KEY", "LLM_BASE_URL", "LLM_MAX_TOKENS", "AWS_REGION",
+    "PLAN_MAX_STEPS", "PLAN_MAX_FANOUT", "PLANNER_MAX_MATCHES",
+    "MCP_TIMEOUT_SECONDS",
+)
+
+
 def _set_env(monkeypatch, extra=None):
+    for key in OPTIONAL_VARS:
+        monkeypatch.delenv(key, raising=False)
     for key, value in {**BASE_ENV, **(extra or {})}.items():
         monkeypatch.setenv(key, value)
 

@@ -16,6 +16,7 @@ node_modules/
 dist/
 .vite/
 services/frontend/public/tokens.json
+services/frontend/public/anchors.json
 
 # Environment / secrets — config is env-driven (invariant 7); never commit values
 .env

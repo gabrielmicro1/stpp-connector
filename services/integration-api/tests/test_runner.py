@@ -274,6 +274,8 @@ async def test_runtime_repair_success(
     assert outcome == "complete"
     statuses = [(s[0], s[1]) for s in recording_sink.steps()]
     assert statuses == [(1, "running"), (1, "repairing"), (1, "complete")]
+    repairing = recording_sink.steps()[1][2]
+    assert repairing["tool"] == "get_proposal"  # DB sink needs tool on every write
     done = recording_sink.steps()[-1][2]
     assert done["tool"] == "search_proposals"
     repair_prompt = llm.prompts[1]

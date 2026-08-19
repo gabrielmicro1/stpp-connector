@@ -10,8 +10,9 @@ const USERS = {
   "analyst-local": "Logan Localonly (rfff_reader)",
 };
 
-// From docs/specs/demo-script.md. <PROPOSAL_NUMBER> stays a literal
-// placeholder until phase 7 seeds the demo_anchors table.
+// From docs/specs/demo-script.md. <PROPOSAL_NUMBER>/<NAME> are placeholders
+// substituted at load from make-generated public/anchors.json (make anchors);
+// without that file the presets keep the literal placeholders.
 const PRESETS = [
   {
     label: "Q1 — FY2025 prohibited factors",
@@ -30,6 +31,11 @@ const PRESETS = [
     user: "analyst-local",
     query:
       "Give me research background on the personnel of proposal <PROPOSAL_NUMBER>.",
+  },
+  {
+    label: "Q3B — denied person, full user",
+    user: "analyst-full",
+    query: "What research background do we have on <NAME>?",
   },
 ];
 
@@ -223,6 +229,19 @@ async function boot() {
   const userSel = document.getElementById("user");
   for (const [id, label] of Object.entries(USERS)) {
     userSel.add(new Option(`${id} — ${label}`, id));
+  }
+  try {
+    const res = await fetch("/anchors.json");
+    if (res.ok) {
+      const anchors = await res.json();
+      for (const preset of PRESETS) {
+        preset.query = preset.query
+          .replace("<PROPOSAL_NUMBER>", anchors.query2_proposal_number ?? "<PROPOSAL_NUMBER>")
+          .replace("<NAME>", anchors.query3b_person_name ?? "<NAME>");
+      }
+    }
+  } catch {
+    // presets keep their literal placeholders
   }
   const presetSpan = document.getElementById("presets");
   for (const preset of PRESETS) {

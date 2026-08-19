@@ -21,6 +21,9 @@ Query: "Give me research background on the personnel of proposal
 <PROPOSAL_NUMBER>." (Picked by `seed_wdp.py`: a proposal whose personnel
 include at least one ORCID with WDP records AND one without; recorded in the
 `demo_anchors` table; `make demo` prints the fully substituted query.)
+Current seed picks proposal **12443080** ("Assimilated tangible parallelism
+Project", Wayne Enterprises): David Anderson has WDP records, Peter Jones
+has none.
 
 Expected: three-step plan — get_proposal → search_wdp_person fan-out
 (`$steps[1].data.personnel[*].person_orcid`) → retrieve_wdp_documents

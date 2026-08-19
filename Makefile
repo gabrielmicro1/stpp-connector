@@ -1,4 +1,4 @@
-.PHONY: up seed test demo migrate check-contracts jwt tokens verify-phase-7
+.PHONY: up seed test demo anchors migrate check-contracts jwt tokens verify-phase-7
 
 up:
 	docker compose up --build -d
@@ -31,9 +31,26 @@ test:
 		-v $(CURDIR)/data:/opt/stpp/data:ro \
 		integration-api pytest -q -p no:cacheprovider /opt/stpp/scripts/tests
 
-# Stub until phase 8 (demo-script queries + JWTs need seed + mint_jwt.py).
+# Print the three demo queries (anchors substituted from wdp.demo_anchors)
+# plus the two test JWTs. Needs a seeded stack (make up && make seed).
 demo:
-	@echo "make demo: not implemented until phase 8 (needs seeded anchors + scripts/mint_jwt.py)"
+	@docker compose run --rm -T \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		-w /opt/stpp/scripts \
+		integration-api python demo.py \
+		--dsn postgresql://stpp:stpp@postgres:5432/wdp
+
+# Bake the demo anchors into the frontend as a static file (gitignored),
+# mirroring `tokens`: presets substitute <PROPOSAL_NUMBER>/<NAME> at load.
+anchors:
+	@mkdir -p services/frontend/public
+	@docker compose run --rm -T \
+		-v $(CURDIR)/scripts:/opt/stpp/scripts:ro \
+		-w /opt/stpp/scripts \
+		integration-api python demo.py --json \
+		--dsn postgresql://stpp:stpp@postgres:5432/wdp \
+	> services/frontend/public/anchors.json
+	@echo "wrote services/frontend/public/anchors.json"
 
 # Print a dev JWT for USER_ID (default analyst-full). Runs inside the image
 # so no host venv is needed; secret comes from the compose default unless set.

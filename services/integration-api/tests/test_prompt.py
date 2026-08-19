@@ -194,7 +194,10 @@ def test_synthesis_prompt_reports_gaps():
         query=FIXTURE_QUERY,
         step_reports=reports,
         caveats=["person_overall_assessment is opaque."],
+        tool_names=["get_proposal", "search_personnel"],
     )
+    assert "- search_personnel" in prompt
+    assert "Tools available to this user" in prompt
     assert "## Step 1 — get_proposal [complete]" in prompt
     assert "## Step 2 — search_wdp_person [failed]" in prompt
     assert "not_authorized: WDP denies access" in prompt

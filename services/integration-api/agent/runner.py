@@ -92,6 +92,7 @@ class Agent:
                 query=query,
                 step_reports=reports,
                 caveats=inputs.planner_context.get("caveats", []),
+                tool_names=[t["name"] for t in tools],
             )
             answer = await self.llm.complete(synthesis_prompt)
             await sink.answer(answer)
@@ -189,7 +190,9 @@ class Agent:
             # Non-repairable by design: the denial is the result.
             return await self._fail_step(step, f"not_authorized: {error.message}", sink)
 
-        await sink.step(step_id, "repairing")
+        # tool/args included so the DB sink's partial upsert never proposes a
+        # NULL tool (job_steps.tool is NOT NULL; checked before ON CONFLICT).
+        await sink.step(step_id, "repairing", tool=step["tool"], args=step["args"])
         repaired = await self._repair_step(step, error, tools, tool_index, inputs,
                                            already_completed)
         if repaired is None:

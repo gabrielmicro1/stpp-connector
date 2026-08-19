@@ -187,8 +187,10 @@ def assemble_synthesis_prompt(
     query: str,
     step_reports: list,
     caveats: list,
+    tool_names: list,
 ) -> str:
     caveats_block = "\n".join(f"- {c}" for c in caveats) if caveats else "- (none)"
+    tools_block = "\n".join(f"- {n}" for n in tool_names) if tool_names else "- (none)"
     return _fill(
         _template("synthesize.md"),
         {
@@ -196,5 +198,6 @@ def assemble_synthesis_prompt(
             "query": query,
             "step_reports_block": render_step_reports(step_reports),
             "caveats_block": caveats_block,
+            "tools_block": tools_block,
         },
     )
