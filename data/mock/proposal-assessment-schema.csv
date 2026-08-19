@@ -1,0 +1,40 @@
+Field Name,Description,Requirement,Data Type,Possible Values
+fiscal_year,Fiscal Year,Required,Choice,"2026, 2025, 2024, 2023"
+ssa,Source Selection Auth,Required,Choice,Not specified in Lists tab
+person_orcid,ORCIDs,Required,Free-Text,N/A
+first_name,First Name,Required,Free-Text,N/A
+middle_name,Middle Name,Optional,Free-Text,N/A
+last_name,Last Name,Required,Free-Text,N/A
+proposal_role,Role in Proposal,Required,Choice,"PI, Co-PI, Collaborator, Student"
+affiliation_uei,Personnel Affiliation UEI,Required,Free Text,N/A
+affiliation_name,Personnel Affiliation Name,Required,Free Text,N/A
+factor1_assessment,Factor 1 - FTRP,Required,Choice,"No Mitigation Needed, Mitigation Measures Required, Prohibited Factors"
+factor2_assessment,Factor 2 - Funding,Required,Choice,"No Mitigation Needed, Mitigation Measures Required, Prohibited Factors"
+factor3_assessment,Factor 3 - Patents,Required,Choice,"No Mitigation Needed, Mitigation Measures Required, Prohibited Factors"
+factor4_assessment,Factor 4 - Entity Lists,Required,Choice,"No Mitigation Needed, Mitigation Measures Required, Prohibited Factors"
+person_overall_assessment,Personnel Assessment,Calculated,Calculated,N/A
+multiple_mitigation,Multiple Mitigation Strategies,Optional,Multiple Values,N/A
+mitigation_explanation_person,Mitigation Explantion for Personnel,Optional,Free-Text,N/A
+mitigation_strategy_proposal,Mitigation Strategy for Proposal,Conditional,Choice,"Cessation, Clarification, Increased Reporting, Other, Replace, Resignation, Sequestration, Certification of Status, Threat Briefs, Training, Collaborator"
+mitigation_explanation_proposal,Mitigation Explantion for Proposal,Optional,Free-Text,N/A
+proposal_number,Proposal Number,Required,Free-Text,N/A
+opportunity_number,Funding Opportunity,Optional,Free-Text,N/A
+proposal_title,Proposal Title,Required,Free-Text,N/A
+submitting_entity_uei,Submitting Entity UEI,Required,Text,N/A
+submitting_entity_name,Submitting Entity Name,Required,Text,N/A
+review_type,Assessment Type,Required,Choice,"Initial, Mitigation Annual Review, 25% Spotcheck, Oversight Spotcheck"
+reviewing_component,Reviewing Component,Required,Choice,"DARPA, DHA, DTRA, NGA, NSA, OSW, USA, USAF, USN, NGA/Q, NGA/SI, NGA/Other, NSA/RD, OUSW(R&E), T2COM, INSCOM, AFRL, ACC, USSF, ONR"
+reviewing_subcomponent,Reviewing Subcomponent,Optional,Choice,"BTO, DSO, I2O, MSO, STO, TTO, CDMRP, Other DHA, RTPSO"
+assessment_state,Assessment State,Required,Choice,"Draft, In Progress, Completed"
+approved_date,Assessment Approved Date,Required,Date,N/A
+review_notes,Assessment Notes,Optional,Free-Text,N/A
+mitigation_status,Mitigation Status on Proposal,Required,Choice,"Not Needed, Not Started, In Progress, Implemented"
+award_type,Award Type,Optional,Choice,"Grant, FAR-based Contract, Other Transaction Authority, CRADA, Other"
+award_state,Award State,Optional,Choice,"In Assessment, In Negotiation, Awarded, No Award"
+fain,FAIN,Conditional,Free-Text,N/A
+awarded_date,Award Date,Conditional,Date,N/A
+award_pop_start,PoP Start Date,Conditional,Date,N/A
+award_pop_end,PoP End Date,Conditional,Date,N/A
+proposal_files,proposal file,Conditional,File,N/A
+person_files,person specific file,Optional,File,N/A
+review_files,due diligence report,Optional,File,N/A
