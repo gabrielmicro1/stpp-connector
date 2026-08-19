@@ -1,0 +1,74 @@
+{
+  "name": "aggregate_assessments",
+  "x-role": "rfff_reader",
+  "x-family": "rfff-local",
+  "description": "Count RFFF proposals grouped by one or more fields, with optional filters — rollups without hauling rows into context. Use it whenever the question asks 'how many' or wants a breakdown; do NOT fetch rows with search_proposals just to count them. Counting semantics: counts DISTINCT proposals. Person-level filters (factor1..factor4_assessment, person_overall_assessment) mean 'the proposal has at least one person matching'. Grouping by a person-level field counts a proposal once per distinct value present among its personnel, so buckets can overlap and may sum to more than the proposal total; meta.overlapping_buckets flags this. Buckets reflect observed values verbatim — e.g. 'Complete' and 'Implemented' appear as separate buckets; never merge or guess-normalize them. Allowed group_by fields: fiscal_year, reviewing_component, reviewing_subcomponent, assessment_state, mitigation_status, award_state, factor1_assessment, factor2_assessment, factor3_assessment, factor4_assessment, person_overall_assessment (membership checked at runtime; the contract stays structural).",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["group_by"],
+    "properties": {
+      "group_by": {
+        "type": "array",
+        "minItems": 1,
+        "items": { "type": "string" },
+        "description": "One or more field names to group by, from the allowed set listed in the tool description. Runtime-validated; unknown fields are invalid_args."
+      },
+      "filters": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Same exact-match filters as search_proposals, ANDed together. Every field is enum-ish: allowed values are the OBSERVED sets profiled from rfff_seed (x-enum-source: observed_enums), regenerated on every seed run and rendered into this description at runtime — deliberately not enumerated in this frozen structural contract.",
+        "properties": {
+          "fiscal_year": { "type": "string", "x-enum-source": "observed_enums", "description": "Fiscal year. Observed values, regenerated at seed time." },
+          "reviewing_component": { "type": "string", "x-enum-source": "observed_enums", "description": "Reviewing component. Observed values, regenerated at seed time." },
+          "reviewing_subcomponent": { "type": "string", "x-enum-source": "observed_enums", "description": "Reviewing subcomponent. Observed values, regenerated at seed time." },
+          "assessment_state": { "type": "string", "x-enum-source": "observed_enums", "description": "Assessment state. Observed values, regenerated at seed time." },
+          "mitigation_status": { "type": "string", "x-enum-source": "observed_enums", "description": "Mitigation status on the proposal. Observed values, regenerated at seed time." },
+          "award_state": { "type": "string", "x-enum-source": "observed_enums", "description": "Award state. Observed values, regenerated at seed time." },
+          "award_type": { "type": "string", "x-enum-source": "observed_enums", "description": "Award type. Observed values, regenerated at seed time." },
+          "review_type": { "type": "string", "x-enum-source": "observed_enums", "description": "Assessment/review type. Observed values, regenerated at seed time." },
+          "factor1_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 1 (FTRP), person-level: at least one matching person. Observed values, regenerated at seed time." },
+          "factor2_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 2 (Funding), person-level: at least one matching person. Observed values, regenerated at seed time." },
+          "factor3_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 3 (Patents), person-level: at least one matching person. Observed values, regenerated at seed time." },
+          "factor4_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 4 (Entity Lists), person-level: at least one matching person. Observed values, regenerated at seed time." },
+          "person_overall_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Opaque overall personnel assessment (person-level). Exact match only. Observed values, regenerated at seed time." }
+        }
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "description": "One bucket per distinct combination of group_by values.",
+        "items": {
+          "type": "object",
+          "required": ["group", "count"],
+          "properties": {
+            "group": {
+              "type": "object",
+              "description": "Map of group_by field name to its observed value for this bucket.",
+              "additionalProperties": { "type": ["string", "null"] }
+            },
+            "count": { "type": "integer", "description": "DISTINCT proposals in this bucket." }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer", "description": "Total buckets before the row cap." },
+          "returned": { "type": "integer" },
+          "truncated": { "type": "boolean" },
+          "overlapping_buckets": {
+            "type": "boolean",
+            "description": "True when any group_by field is person-level, so a proposal can appear in multiple buckets and bucket counts may sum to more than the proposal total."
+          }
+        }
+      }
+    }
+  }
+}

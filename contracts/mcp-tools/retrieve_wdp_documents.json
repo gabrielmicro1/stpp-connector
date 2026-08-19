@@ -1,0 +1,56 @@
+{
+  "name": "retrieve_wdp_documents",
+  "x-role": "wdp_reader",
+  "x-family": "wdp",
+  "description": "Retrieve document/record detail from the War Data Platform for ONE ref_id previously returned by search_wdp_person or search_wdp_entity. This is the expensive, deliberate call — NEVER the first WDP call in a plan: always discover the ref_id with a cheap search tool first, then retrieve. Returns typed documents (publication, funding_record, or entity_record) with title, year, source, and a detail payload. Returns not_found for an unknown ref_id. Results are row-capped; meta.truncated signals that more documents exist than were returned.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["ref_id"],
+    "properties": {
+      "ref_id": {
+        "type": "string",
+        "description": "Opaque reference from a prior search_wdp_person or search_wdp_entity result. Never fabricate one."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum documents to return; the server additionally caps every response at MCP_MAX_ROWS."
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["doc_id", "type"],
+          "properties": {
+            "doc_id": { "type": "string" },
+            "type": {
+              "type": "string",
+              "enum": ["publication", "funding_record", "entity_record"],
+              "description": "Fixed protocol values (not observed enums)."
+            },
+            "title": { "type": ["string", "null"] },
+            "year": { "type": ["integer", "null"] },
+            "source": { "type": ["string", "null"] },
+            "detail": { "type": "object", "description": "Document detail payload; long text fields are truncated per result hygiene." }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer" },
+          "returned": { "type": "integer" },
+          "truncated": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

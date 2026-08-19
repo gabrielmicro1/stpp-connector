@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: PSP7 RFFF Retrieval Connector — Integration API
+  version: 1.0.0
+  description: |
+    Front door of the connector. In prod the STPP Node backend calls it through
+    the Game Warden Gateway; in the demo the mock frontend uses the identical
+    contract. A natural-language query goes in with a delegated user JWT; the
+    response is a Server-Sent Events stream of plan, progress, and result
+    events. `GET /v1/jobs/{job_id}` is the recovery/polling path backed by the
+    same job store the stream is emitted from.
+
+    This file is interface truth (generated in phase 2; change only with
+    explicit approval). Rationale: docs/specs/integration-api.md.
+paths:
+  /v1/query:
+    post:
+      operationId: submitQuery
+      summary: Submit a natural-language query; the response IS the SSE stream.
+      description: |
+        Single request from the client's perspective: the HTTP response body is
+        a `text/event-stream` carrying the job's full event sequence. POST is
+        primary; if a GET variant is ever added for STPP compatibility it MUST
+        dedup on a query-hash window so proxy retries/refetches cannot
+        double-run jobs.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  minLength: 1
+                  description: The natural-language query (untrusted user input).
+      responses:
+        "200":
+          description: |
+            SSE stream (`text/event-stream`). Framing: each event is an
+            `event: <type>` line plus a `data: <json>` line. Every `data`
+            payload carries `job_id` and a monotonically increasing `seq` so a
+            reconnecting client can detect gaps. Order: `job` is always first
+            (status "planning", emitted immediately); `done` is always last.
+            `ping` heartbeats are emitted every SSE_PING_SECONDS (default 15)
+            as gateway idle-timeout insurance. Step failures are never
+            terminal: synthesis always runs once execution ends and the job
+            finishes `answer` + `done {status: "complete"}`;
+            `done {status: "failed"}` accompanies only an `error` event.
+
+            Event types and payload schemas (see `x-sse-events`):
+            `job`, `plan`, `step`, `answer`, `error`, `done`, `ping`.
+          x-sse-events:
+            job: "#/components/schemas/SseJobEvent"
+            plan: "#/components/schemas/SsePlanEvent"
+            step: "#/components/schemas/SseStepEvent"
+            answer: "#/components/schemas/SseAnswerEvent"
+            error: "#/components/schemas/SseErrorEvent"
+            done: "#/components/schemas/SseDoneEvent"
+            ping: "#/components/schemas/SsePingEvent"
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE wire format; per-event JSON payloads are defined by the schemas referenced in x-sse-events.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/jobs/{job_id}:
+    get:
+      operationId: getJob
+      summary: Current job state (recovery/polling path).
+      description: |
+        Returns the same data the SSE stream emits, read from the job store —
+        a dropped stream never orphans a query. STPP never has to use it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current job state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Unknown or already-swept job_id; error code `job_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/healthz:
+    get:
+      operationId: healthz
+      summary: Liveness for compose/K8s.
+      responses:
+        "200":
+          description: Service is alive.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ok
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Delegated user context. Demo: HS256, shared secret `JWT_SECRET`,
+        minted by scripts/mint_jwt.py. Prod: Keycloak issuer/JWKS — claim
+        shape unchanged. Claims: `sub` (user id), `name`, `component`
+        (carried through all layers and audited; enforces nothing in the
+        demo), `roles` (e.g. ["rfff_reader"], ["rfff_reader","wdp_reader"]).
+        Missing/invalid signature or expiry → 401.
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - plan_invalid
+                - budget_exceeded
+                - llm_unavailable
+                - internal_error
+                - job_not_found
+              description: |
+                plan_invalid — plan validation failed after the one planning
+                repair; includes exceeding PLAN_MAX_STEPS (a VALIDATION
+                failure, never a budget one). budget_exceeded — RUNTIME
+                budgets only: wall-clock JOB_MAX_SECONDS or the per-call LLM
+                output cap LLM_MAX_TOKENS. llm_unavailable — LLM endpoint
+                unreachable or erroring after retry (planning, repair, or
+                synthesis). internal_error — anything unexpected; message
+                sanitized. job_not_found — GET /v1/jobs/{job_id} only.
+            message:
+              type: string
+    Plan:
+      $ref: "./plan-format.json"
+      description: The validated plan document (normative schema in contracts/plan-format.json).
+    JobStatus:
+      type: object
+      description: Job state as stored; the SSE stream is emitted from the same records.
+      required: [job_id, status, query, created_at, updated_at]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [planning, executing, synthesizing, complete, failed]
+        query:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        plan:
+          $ref: "#/components/schemas/Plan"
+          description: Present once plan validation has completed.
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobStep"
+        answer:
+          type: ["string", "null"]
+          description: Final synthesized answer; present when status is complete.
+        error:
+          $ref: "#/components/schemas/Error"
+          description: Present when status is failed.
+    JobStep:
+      type: object
+      required: [step_id, status, tool]
+      properties:
+        step_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, repairing, complete, failed]
+        tool:
+          type: string
+        args:
+          type: object
+          description: Args as stored (references resolved at execution time).
+        result:
+          description: Step result, size-capped before storage (same cap the MCP server applies); a fanned-out step stores the ordered per-call result list.
+        error:
+          type: ["string", "null"]
+        started_at:
+          type: ["string", "null"]
+          format: date-time
+        finished_at:
+          type: ["string", "null"]
+          format: date-time
+    SseEventBase:
+      type: object
+      required: [job_id, seq]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        seq:
+          type: integer
+          description: Monotonically increasing per job; lets a reconnecting client detect gaps.
+    SseJobEvent:
+      description: First event, emitted immediately.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              const: planning
+    SsePlanEvent:
+      description: Emitted after plan validation succeeds. The validated plan JSON is carried under `plan` (the envelope adds job_id/seq, which the plan schema itself forbids as extra properties).
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [plan]
+          properties:
+            plan:
+              $ref: "#/components/schemas/Plan"
+    SseStepEvent:
+      description: Emitted on every step status transition. `rows`/`truncated` mirror the MCP result meta.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [step_id, status]
+          properties:
+            step_id:
+              type: integer
+            status:
+              type: string
+              enum: [running, complete, repairing, failed]
+            summary:
+              type: string
+              description: Human-readable step summary (includes fan-out truncation notes).
+            rows:
+              type: integer
+              description: Mirrors meta.returned from the MCP result.
+            truncated:
+              type: boolean
+              description: Mirrors meta.truncated from the MCP result.
+    SseAnswerEvent:
+      description: Synthesis complete. Always emitted once execution ends, even if every step failed.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [text]
+          properties:
+            text:
+              type: string
+    SseErrorEvent:
+      description: Terminal failure only (job ends done {status "failed"}). Step failures are reported via step events and synthesis, never here.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [plan_invalid, budget_exceeded, llm_unavailable, internal_error]
+            message:
+              type: string
+    SseDoneEvent:
+      description: Always the last event.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [complete, failed]
+    SsePingEvent:
+      description: Heartbeat every SSE_PING_SECONDS (default 15); no payload beyond the envelope.
+      allOf:
+        - $ref: "#/components/schemas/SseEventBase"

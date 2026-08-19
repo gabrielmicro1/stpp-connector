@@ -1,0 +1,95 @@
+{
+  "name": "search_proposals",
+  "x-role": "rfff_reader",
+  "x-family": "rfff-local",
+  "description": "Search the local RFFF proposal-assessment catalog by structured filters and/or free-text keywords. Returns proposal-level rows only — no personnel detail — plus result meta. Cheap discovery: use it to find proposals matching criteria when no proposal_number is known yet. Do NOT use it when you need personnel, factor assessments, or files for one known proposal (call get_proposal), and do NOT use it just to count things (call aggregate_assessments). keywords matches proposal titles and submitting-entity names, case-insensitive. All filters are exact matches against observed values; the four factor filters and person_overall_assessment are person-level — a proposal matches when at least one of its personnel matches. person_overall_assessment is an opaque stored value: filter and report it verbatim only, never compute, derive, or explain it.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "filters": { "$ref": "#/$defs/filters" },
+      "keywords": {
+        "type": "string",
+        "description": "Free-text search over proposal titles and submitting-entity names (case-insensitive substring match)."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum rows to return; the server additionally caps every response at MCP_MAX_ROWS."
+      }
+    },
+    "$defs": {
+      "filters": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Optional exact-match filters, ANDed together. Every field is enum-ish: the allowed values are the OBSERVED value sets profiled from rfff_seed (x-enum-source: observed_enums), regenerated on every seed run and rendered into this description at runtime by the MCP server — deliberately not enumerated in this frozen structural contract.",
+        "properties": {
+          "fiscal_year": { "type": "string", "x-enum-source": "observed_enums", "description": "Fiscal year of the proposal. Observed values, regenerated at seed time." },
+          "reviewing_component": { "type": "string", "x-enum-source": "observed_enums", "description": "Reviewing component. Observed values, regenerated at seed time." },
+          "reviewing_subcomponent": { "type": "string", "x-enum-source": "observed_enums", "description": "Reviewing subcomponent. Observed values, regenerated at seed time." },
+          "assessment_state": { "type": "string", "x-enum-source": "observed_enums", "description": "Assessment state. Observed values, regenerated at seed time." },
+          "mitigation_status": { "type": "string", "x-enum-source": "observed_enums", "description": "Mitigation status on the proposal. Observed values, regenerated at seed time." },
+          "award_state": { "type": "string", "x-enum-source": "observed_enums", "description": "Award state. Observed values, regenerated at seed time." },
+          "award_type": { "type": "string", "x-enum-source": "observed_enums", "description": "Award type. Observed values, regenerated at seed time." },
+          "review_type": { "type": "string", "x-enum-source": "observed_enums", "description": "Assessment/review type. Observed values, regenerated at seed time." },
+          "factor1_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 1 (FTRP) person-level assessment; matches proposals with at least one matching person. Observed values, regenerated at seed time." },
+          "factor2_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 2 (Funding) person-level assessment; matches proposals with at least one matching person. Observed values, regenerated at seed time." },
+          "factor3_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 3 (Patents) person-level assessment; matches proposals with at least one matching person. Observed values, regenerated at seed time." },
+          "factor4_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Factor 4 (Entity Lists) person-level assessment; matches proposals with at least one matching person. Observed values, regenerated at seed time." },
+          "person_overall_assessment": { "type": "string", "x-enum-source": "observed_enums", "description": "Opaque overall personnel assessment (person-level; at least one matching person). Exact match only — never computed or explained. Observed values, regenerated at seed time." }
+        }
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "description": "Matching proposal rows (proposal-level fields only; no personnel).",
+        "items": { "$ref": "#/$defs/proposal_row" }
+      },
+      "meta": { "$ref": "#/$defs/meta" }
+    },
+    "$defs": {
+      "proposal_row": {
+        "type": "object",
+        "required": ["proposal_number"],
+        "properties": {
+          "proposal_number": { "type": "string" },
+          "fiscal_year": { "type": ["string", "null"] },
+          "ssa": { "type": ["string", "null"] },
+          "opportunity_number": { "type": ["string", "null"] },
+          "proposal_title": { "type": ["string", "null"] },
+          "submitting_entity_uei": { "type": ["string", "null"] },
+          "submitting_entity_name": { "type": ["string", "null"] },
+          "review_type": { "type": ["string", "null"] },
+          "reviewing_component": { "type": ["string", "null"] },
+          "reviewing_subcomponent": { "type": ["string", "null"] },
+          "assessment_state": { "type": ["string", "null"] },
+          "approved_date": { "type": ["string", "null"], "format": "date" },
+          "review_notes": { "type": ["string", "null"] },
+          "mitigation_status": { "type": ["string", "null"] },
+          "mitigation_strategy_proposal": { "type": "array", "items": { "type": "string" } },
+          "mitigation_explanation": { "type": ["string", "null"] },
+          "award_type": { "type": ["string", "null"] },
+          "award_state": { "type": ["string", "null"] },
+          "fain": { "type": ["string", "null"] },
+          "awarded_date": { "type": ["string", "null"], "format": "date" },
+          "award_pop_start": { "type": ["string", "null"], "format": "date" },
+          "award_pop_end": { "type": ["string", "null"], "format": "date" }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer", "description": "Total matches before the row cap." },
+          "returned": { "type": "integer", "description": "Rows actually returned (server-capped at MCP_MAX_ROWS)." },
+          "truncated": { "type": "boolean", "description": "True when rows or long text fields were truncated." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "search_wdp_entity",
+  "x-role": "wdp_reader",
+  "x-family": "wdp",
+  "description": "Cheap discovery of an institution/entity in the War Data Platform (WDP) by UEI or name. Returns entity SUMMARIES only — identity, country, a record COUNT, and a ref_id. Document detail requires a follow-up retrieve_wdp_documents call with the returned ref_id. Prefer uei when available — it is an exact identifier match, and RFFF tools return submitting_entity_uei and affiliation_uei as the bridge identifiers; fall back to a name search when no UEI is known (also the suggested repair after a not_found on a uei lookup). Empty results mean WDP has nothing on the entity — a reportable gap, not an error. Provide at least one of uei or name.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "uei": {
+        "type": "string",
+        "description": "Exact UEI match — the bridge identifier returned by RFFF tools as submitting_entity_uei or affiliation_uei. Never fabricate one."
+      },
+      "name": {
+        "type": "string",
+        "description": "Entity/institution name, partial/fuzzy match. Use when no UEI is known."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum summaries to return; the server additionally caps every response at MCP_MAX_ROWS."
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["ref_id"],
+          "properties": {
+            "ref_id": { "type": "string", "description": "Opaque WDP reference; pass to retrieve_wdp_documents for document detail." },
+            "uei": { "type": ["string", "null"] },
+            "name": { "type": ["string", "null"] },
+            "country": { "type": ["string", "null"] },
+            "record_count": { "type": "integer" }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer" },
+          "returned": { "type": "integer" },
+          "truncated": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

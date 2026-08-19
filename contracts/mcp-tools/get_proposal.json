@@ -1,0 +1,98 @@
+{
+  "name": "get_proposal",
+  "x-role": "rfff_reader",
+  "x-family": "rfff-local",
+  "description": "Retrieve the complete RFFF record for a single proposal by its exact proposal_number: all proposal fields plus every person on the proposal with role, affiliation, the four factor assessments, the opaque person_overall_assessment, person-level mitigation fields, and file references. Use it when a specific proposal_number is already known — from the user query, the planner context, or a prior search_proposals step. Do NOT use it to search: call search_proposals first when the number is unknown. Roles are returned exactly as stored — many proposals have no PI and some have more than one; never assume one PI per proposal. person_overall_assessment is an opaque stored value: report it verbatim, never compute, derive, or explain it. The personnel person_orcid values are the bridge identifiers accepted by search_wdp_person. Returns not_found for an unknown proposal_number.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["proposal_number"],
+    "properties": {
+      "proposal_number": {
+        "type": "string",
+        "description": "Exact proposal number, e.g. \"P-2025-0042\". Never fabricate one."
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "object",
+        "description": "The full proposal record.",
+        "required": ["proposal_number", "personnel"],
+        "properties": {
+          "proposal_number": { "type": "string" },
+          "fiscal_year": { "type": ["string", "null"] },
+          "ssa": { "type": ["string", "null"] },
+          "opportunity_number": { "type": ["string", "null"] },
+          "proposal_title": { "type": ["string", "null"] },
+          "submitting_entity_uei": { "type": ["string", "null"] },
+          "submitting_entity_name": { "type": ["string", "null"] },
+          "review_type": { "type": ["string", "null"] },
+          "reviewing_component": { "type": ["string", "null"] },
+          "reviewing_subcomponent": { "type": ["string", "null"] },
+          "assessment_state": { "type": ["string", "null"] },
+          "approved_date": { "type": ["string", "null"], "format": "date" },
+          "review_notes": { "type": ["string", "null"] },
+          "mitigation_status": { "type": ["string", "null"] },
+          "mitigation_strategy_proposal": { "type": "array", "items": { "type": "string" } },
+          "mitigation_explanation": { "type": ["string", "null"] },
+          "award_type": { "type": ["string", "null"] },
+          "award_state": { "type": ["string", "null"] },
+          "fain": { "type": ["string", "null"] },
+          "awarded_date": { "type": ["string", "null"], "format": "date" },
+          "award_pop_start": { "type": ["string", "null"], "format": "date" },
+          "award_pop_end": { "type": ["string", "null"], "format": "date" },
+          "personnel": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["person_orcid"],
+              "properties": {
+                "person_orcid": { "type": "string", "description": "Bridge identifier for WDP tools (search_wdp_person)." },
+                "first_name": { "type": ["string", "null"] },
+                "middle_name": { "type": ["string", "null"] },
+                "last_name": { "type": ["string", "null"] },
+                "proposal_role": { "type": ["string", "null"], "description": "Role as stored; PI coverage is unreliable in the data — report as found." },
+                "affiliation_uei": { "type": ["string", "null"] },
+                "affiliation_name": { "type": ["string", "null"] },
+                "factor1_assessment": { "type": ["string", "null"] },
+                "factor2_assessment": { "type": ["string", "null"] },
+                "factor3_assessment": { "type": ["string", "null"] },
+                "factor4_assessment": { "type": ["string", "null"] },
+                "person_overall_assessment": { "type": ["string", "null"], "description": "Opaque stored value; report verbatim only." },
+                "multiple_mitigation": { "type": "array", "items": { "type": "string" } },
+                "mitigation_explanation_person": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "file_refs": {
+            "type": "array",
+            "description": "File POINTERS only, never contents.",
+            "items": {
+              "type": "object",
+              "required": ["scope", "filename"],
+              "properties": {
+                "scope": { "type": "string", "enum": ["proposal", "person", "review"] },
+                "person_orcid": { "type": ["string", "null"], "description": "Set for person-scoped files." },
+                "filename": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer" },
+          "returned": { "type": "integer" },
+          "truncated": { "type": "boolean", "description": "True when long text fields were truncated." }
+        }
+      }
+    }
+  }
+}

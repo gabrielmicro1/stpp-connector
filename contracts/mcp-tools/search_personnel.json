@@ -1,0 +1,71 @@
+{
+  "name": "search_personnel",
+  "x-role": "rfff_reader",
+  "x-family": "rfff-local",
+  "description": "Search people in the local RFFF catalog by name, ORCID, or affiliation. Returns person rows together with every proposal each person appears on (proposal_number, proposal_title, proposal_role, person_overall_assessment). Person-centric questions are first-class: people recur across roughly ten proposals each, so prefer this tool over scanning proposals when the query is about a person. Provide at least one of name, orcid, or affiliation (an empty search is invalid_args). name matches first/middle/last names case-insensitively; orcid is an exact identifier match; affiliation matches the person's affiliation names across their proposals. person_overall_assessment is an opaque stored value — report it verbatim, never compute or explain it. The returned person_orcid values are the bridge identifiers accepted by search_wdp_person.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Person name, matched case-insensitively against first/middle/last names."
+      },
+      "orcid": {
+        "type": "string",
+        "description": "Exact ORCID identifier match."
+      },
+      "affiliation": {
+        "type": "string",
+        "description": "Affiliation name, matched case-insensitively against the person's affiliations on proposals."
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Maximum person rows to return; the server additionally caps every response at MCP_MAX_ROWS."
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["person_orcid", "proposals"],
+          "properties": {
+            "person_orcid": { "type": "string", "description": "Bridge identifier for WDP tools (search_wdp_person)." },
+            "first_name": { "type": ["string", "null"] },
+            "middle_name": { "type": ["string", "null"] },
+            "last_name": { "type": ["string", "null"] },
+            "proposals": {
+              "type": "array",
+              "description": "Every proposal this person appears on.",
+              "items": {
+                "type": "object",
+                "required": ["proposal_number"],
+                "properties": {
+                  "proposal_number": { "type": "string" },
+                  "proposal_title": { "type": ["string", "null"] },
+                  "proposal_role": { "type": ["string", "null"] },
+                  "person_overall_assessment": { "type": ["string", "null"], "description": "Opaque stored value; report verbatim only." }
+                }
+              }
+            }
+          }
+        }
+      },
+      "meta": {
+        "type": "object",
+        "required": ["total", "returned", "truncated"],
+        "properties": {
+          "total": { "type": "integer" },
+          "returned": { "type": "integer" },
+          "truncated": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

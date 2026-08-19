@@ -82,13 +82,23 @@ for STPP: cross-component visibility rules.
 ## `scripts/seed_wdp.py` (db `wdp`)
 
 Reads ORCIDs/UEIs from rfff_seed; generates deterministic (fixed-RNG-seed)
-synthetic `publications`, `funding_records`, `entities` referencing them, a
-few hundred rows, so cross-boundary demo queries actually join. A small
-percentage of ORCIDs get NO WDP records (exercises not_found → repair path).
+synthetic research-world data, a few hundred rows, so cross-boundary demo
+queries actually join. A small percentage of ORCIDs get NO WDP records
+(exercises not_found → repair path).
+
+Schema (decided in phase 2; DDL in `db/migrations/wdp/`): `persons(ref_id,
+orcid, name, affiliations[])` and `entities(ref_id, uei, name, country)` are
+the ref_id dimension tables behind fake-wdp's summary endpoints, and one
+polymorphic `documents(doc_id, ref_id, type publication|funding_record|
+entity_record, title, year, source, detail)` table backs
+`/v1/documents/{ref_id}` — publication/funding/record counts in the
+summaries derive from it. (Supersedes this spec's earlier separate
+publications/funding_records tables: one table keyed by ref_id is what the
+document endpoint actually serves.)
 
 Also: verifies every ORCID in `FAKE_WDP_DENY_ORCIDS` exists in rfff_seed AND
 receives WDP records (denial must differ from absence), then writes a
-`demo_anchors` table — the Query-2 proposal_number (personnel include ≥1
+`demo_anchors` table (in db `wdp`) — the Query-2 proposal_number (personnel include ≥1
 ORCID with WDP records and ≥1 without) and the Query-3B person name +
 denied ORCID. `make demo` reads `demo_anchors` to print fully substituted
 demo queries.
