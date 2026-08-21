@@ -75,8 +75,6 @@ export function endRun(status) {
 }
 
 export function resetPanels() {
-  el("log").textContent = "";
-  el("seq-gap").style.display = "none";
   clearError();
 }
 
@@ -138,7 +136,7 @@ export function upsertStepRow(stepId, fields) {
 }
 
 // Conversation transcript (multi-turn): prior turns stay on screen; the
-// current-run panels below still reset per submit via resetPanels().
+// error panel still resets per submit via resetPanels().
 export function appendTurn(role, text) {
   const li = document.createElement("li");
   li.className = role;
@@ -187,26 +185,4 @@ export function renderJobSnapshot(job) {
   // job.answer reaches the transcript via finalize() (assistant turn).
   const err = job.error?.error;
   if (err) renderError(err.code, err.message);
-}
-
-export function logEvent(name, raw) {
-  logLine(`${name.padEnd(7)} ${raw}`);
-}
-
-export function logNote(text) {
-  logLine(`[client ${new Date().toLocaleTimeString()}] ${text}`);
-}
-
-export function logPoll(job) {
-  logLine(`[poll ${new Date().toLocaleTimeString()}] ${JSON.stringify(job)}`);
-}
-
-export function showSeqGap() {
-  el("seq-gap").style.display = "inline";
-}
-
-function logLine(line) {
-  const pre = el("log");
-  pre.textContent += line + "\n";
-  pre.scrollTop = pre.scrollHeight;
 }

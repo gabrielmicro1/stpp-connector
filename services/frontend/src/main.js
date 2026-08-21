@@ -4,47 +4,14 @@
 import { parseSSEStream } from "./sse.js";
 import { submitQuery, getJob } from "./api.js";
 import * as ui from "./render.js";
+import { initTabs } from "./tabs.js";
+import "./styles.css";
 
 const USERS = {
   "analyst-full": "Avery Fullaccess (rfff_reader + wdp_reader)",
   "analyst-local": "Logan Localonly (rfff_reader)",
 };
 
-// From docs/specs/demo-script.md. <PROPOSAL_NUMBER>/<NAME> are placeholders
-// substituted at load from make-generated public/anchors.json (make anchors);
-// without that file the presets keep the literal placeholders. followup
-// presets continue the current conversation; all others start a new one.
-const PRESETS = [
-  {
-    label: "Q1 — FY2025 prohibited factors",
-    user: "analyst-full",
-    query:
-      "How many proposals had Prohibited Factors on factor 4 in fiscal year 2025? Break it down by reviewing component.",
-  },
-  {
-    label: "Q1b — follow-up: compare FY2024",
-    user: "analyst-full",
-    followup: true,
-    query: "How does that compare to fiscal year 2024?",
-  },
-  {
-    label: "Q2 — proposal personnel background",
-    user: "analyst-full",
-    query:
-      "Give me research background on the personnel of proposal <PROPOSAL_NUMBER>.",
-  },
-  {
-    label: "Q3A — same query, local-only user",
-    user: "analyst-local",
-    query:
-      "Give me research background on the personnel of proposal <PROPOSAL_NUMBER>.",
-  },
-  {
-    label: "Q3B — denied person, full user",
-    user: "analyst-full",
-    query: "What research background do we have on <NAME>?",
-  },
-];
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_RESUBMITS = 3;
@@ -52,8 +19,7 @@ const MAX_RESUBMITS = 3;
 let tokens = null;
 let run = null; // current run context; replaced wholesale on each submit
 // The conversation (stateless server: we resend it in full each turn).
-// Survives across runs; cleared by New conversation / user switch /
-// non-followup presets.
+// Survives across runs; cleared by New conversation / user switch.
 let messages = [];
 
 function newConversation() {
@@ -77,14 +43,13 @@ function newRun(msgs, token) {
 }
 
 function handleEvent({ event, data, raw }) {
-  ui.logEvent(event, raw);
-  if (!data) return; // parse failure already visible in the raw log
+  console.debug("sse", event, raw);
+  if (!data) return; // parse failure already visible in the console
   const ctx = run;
   if (ctx) {
     if (typeof data.seq === "number") {
       if (ctx.lastSeq !== null && data.seq > ctx.lastSeq + 1) {
         console.warn(`SSE seq gap: ${ctx.lastSeq} -> ${data.seq}`);
-        ui.showSeqGap();
       }
       ctx.lastSeq = data.seq;
     }
@@ -119,7 +84,7 @@ function handleEvent({ event, data, raw }) {
       }
       break;
     case "ping":
-      break; // heartbeat; raw log only
+      break; // heartbeat; nothing to render
   }
 }
 
@@ -143,7 +108,7 @@ async function startStream(ctx) {
     res = await submitQuery(ctx.token, ctx.messages, ctx.abort.signal);
   } catch (err) {
     if (ctx !== run) return;
-    ui.logNote(`POST /v1/query failed: ${err.message}`);
+    console.debug(`POST /v1/query failed: ${err.message}`);
     return onStreamEnd(ctx);
   }
   if (ctx !== run) return;
@@ -158,7 +123,7 @@ async function startStream(ctx) {
     } catch {
       ui.renderError("request_failed", detail);
     }
-    ui.logNote(`submit rejected: ${detail}`);
+    console.debug(`submit rejected: ${detail}`);
     finalize(ctx, "failed");
     return;
   }
@@ -167,7 +132,7 @@ async function startStream(ctx) {
       if (ctx === run) handleEvent(frame);
     });
   } catch (err) {
-    ui.logNote(`stream error: ${err.message}`);
+    console.debug(`stream error: ${err.message}`);
   }
   onStreamEnd(ctx);
 }
@@ -179,7 +144,7 @@ function onStreamEnd(ctx) {
     startPolling(ctx.jobId);
   } else if (ctx.resubmitsLeft > 0) {
     ctx.resubmitsLeft -= 1;
-    ui.logNote(
+    console.debug(
       `stream dropped before job_id arrived; resubmitting query (${ctx.resubmitsLeft} retries left)`,
     );
     ctx.abort = new AbortController();
@@ -206,7 +171,7 @@ function startPolling(jobId) {
     try {
       snap = await getJob(ctx.token, jobId);
     } catch (err) {
-      ui.logNote(`poll failed: ${err.message}; retrying`);
+      console.debug(`poll failed: ${err.message}; retrying`);
       return schedule();
     }
     if (ctx !== run || ctx.done) return;
@@ -216,10 +181,10 @@ function startPolling(jobId) {
       return finalize(ctx, "failed");
     }
     if (snap.status !== 200) {
-      ui.logNote(`poll HTTP ${snap.status}: ${JSON.stringify(snap.body)}; retrying`);
+      console.debug(`poll HTTP ${snap.status}: ${JSON.stringify(snap.body)}; retrying`);
       return schedule();
     }
-    ui.logPoll(snap.body);
+    console.debug("poll", snap.body);
     ui.renderJobSnapshot(snap.body);
     if (snap.body.status === "complete" || snap.body.status === "failed") {
       if (snap.body.answer != null) ctx.answerText = snap.body.answer;
@@ -251,43 +216,20 @@ function submit() {
   ui.resetPanels();
   ui.beginRun();
   document.getElementById("query").value = "";
-  ui.logNote(`submitting as ${user} (turn ${messages.length}): ${query}`);
+  console.debug(`submitting as ${user} (turn ${messages.length}): ${query}`);
   startStream(run);
 }
 
 async function boot() {
+  initTabs("leadership");
   const userSel = document.getElementById("user");
   for (const [id, label] of Object.entries(USERS)) {
     userSel.add(new Option(`${id} — ${label}`, id));
   }
-  try {
-    const res = await fetch("/anchors.json");
-    if (res.ok) {
-      const anchors = await res.json();
-      for (const preset of PRESETS) {
-        preset.query = preset.query
-          .replace("<PROPOSAL_NUMBER>", anchors.query2_proposal_number ?? "<PROPOSAL_NUMBER>")
-          .replace("<NAME>", anchors.query3b_person_name ?? "<NAME>");
-      }
-    }
-  } catch {
-    // presets keep their literal placeholders
-  }
   // Cross-user history replay is incoherent (analyst-local must not carry
   // analyst-full's WDP answers), so switching user starts a fresh
-  // conversation. Programmatic .value writes from presets don't fire this.
+  // conversation.
   userSel.addEventListener("change", newConversation);
-  const presetSpan = document.getElementById("presets");
-  for (const preset of PRESETS) {
-    const btn = document.createElement("button");
-    btn.textContent = preset.label;
-    btn.addEventListener("click", () => {
-      if (!preset.followup) newConversation();
-      document.getElementById("query").value = preset.query;
-      userSel.value = preset.user;
-    });
-    presetSpan.appendChild(btn);
-  }
   document.getElementById("submit").addEventListener("click", submit);
   document.getElementById("new-convo").addEventListener("click", newConversation);
 

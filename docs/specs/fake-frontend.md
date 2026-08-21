@@ -12,6 +12,14 @@ Vite + vanilla JS — no framework (per CLAUDE.md conventions; the earlier
 "minimal React" escape hatch is removed), no router, no state library, no
 design system. Served by the `frontend` compose service.
 
+The page is themed as the STPP "Fundamental Research Risk Reviews" (FRRR)
+home screen: a navy banner with a generic roundel (deliberately NOT a DoD
+or agency seal) and three tabs — LEADERSHIP, ANALYSIS, AI. Leadership and
+Analysis are static decorative placeholders (fake data, zero JS, outside
+the API contract); the AI tab hosts the entire live client described
+below. Tab switching is plain show/hide (`src/tabs.js`); the default tab
+is Leadership, so the demo's first beat is clicking AI.
+
 Elements:
 1. **User picker** — dropdown with the two test users (`analyst-full`,
    `analyst-local`); selecting one sets the JWT used for requests (tokens
@@ -22,14 +30,14 @@ Elements:
    headers). Sends the full conversation as `messages` (the page keeps it
    client-side; the server is stateless). A **transcript** above the box
    shows prior turns; completed answers are appended as assistant turns.
-   The conversation resets on: the New-conversation button, switching user
-   (cross-user history replay is incoherent), or any non-follow-up preset.
+   The conversation resets on: the New-conversation button or switching
+   user (cross-user history replay is incoherent).
    Layout is chat-shaped: one scroll region holds the whole transcript (no
    per-message scrolling) and the composer is pinned at the bottom. Each
    submitted query renders an in-chat agent-activity block — plan intent +
    the live step checklist ticking as `step` events arrive — between the
    user turn and the assistant answer; blocks from earlier turns stay in
-   the transcript. The raw-event-log dropdown remains below the transcript.
+   the transcript.
 3. **Plan panel** — renders the `plan` event as a checklist: one row per step
    showing tool, human-readable reason, and args summary.
 4. **Progress** — `step` events tick the checklist (spinner → check/✗;
@@ -38,8 +46,10 @@ Elements:
    fields shown inline.
 5. **Answer panel** — renders the `answer` event text; on `error`, shows
    code + message plainly.
-6. **Raw event log** (collapsible) — every SSE event as received; the
-   "here's what your backend will consume" view for STPP engineers.
+(There is no in-page raw event log: SSE frames land in the browser
+console via `console.debug`, and the terminal narrator
+`scripts/demo_tap.py` is the "here's what your backend will consume" view
+for STPP engineers.)
 
 ## Behaviors
 
@@ -47,8 +57,8 @@ Elements:
   every 2s using the stored job_id — demonstrating the recovery path exists.
   If it drops before the first `job` event delivers a job_id, resubmit the
   query instead.
-- Three demo-query preset buttons (from specs/demo-script.md) so nobody
-  live-types under pressure.
+- No preset query buttons: demo queries are pasted from the `make demo`
+  cheat sheet (specs/demo-script.md remains the source of the queries).
 - No client-side interpretation of results beyond rendering; honesty about
   failures comes from synthesis, not UI smoothing. Answers (and assistant
   transcript turns) render as markdown, sanitized before DOM insertion —
@@ -56,5 +66,6 @@ Elements:
 
 ## Non-goals
 
-Auth flows, styling polish, mobile, multiple concurrent jobs, server-side
-history (the conversation lives in the page and is resent each turn).
+Auth flows, mobile, multiple concurrent jobs, server-side history (the
+conversation lives in the page and is resent each turn), charting
+libraries or real data on the decorative dashboard tabs.

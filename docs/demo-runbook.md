@@ -26,7 +26,9 @@ the MCP `tools/list` method, and the public `GET /v1/jobs/{id}` endpoint.
 ## Screen setup (before recording)
 
 1. Browser (left half): http://localhost:5173 — normal window, ~50% width.
-   Click "New conversation" so the transcript is empty.
+   The page opens on the Leadership tab (the FRRR establishing shot —
+   one line of framing, then click the **AI** tab). Click
+   "New conversation" so the transcript is empty.
 2. Terminal (right half): dark theme, font 16–18pt, two stacked panes
    (iTerm2: Cmd-Shift-D to split horizontally; or `tmux` with
    `tmux new \; split-window -v`). Run from the repo root:
@@ -43,7 +45,11 @@ the MCP `tools/list` method, and the public `GET /v1/jobs/{id}` endpoint.
    leave that visible; it is the role-based-access establishing shot.
 3. Recorder: QuickTime (File → New Screen Recording, full screen) or OBS.
 
-## The recorded arc (presets left to right)
+## The recorded arc (queries from `make demo`, in order)
+
+For each beat: set the User dropdown first (switching user clears the
+conversation by design — never touch it before Q1b), then paste the query
+from the `make demo` cheat sheet and Submit.
 
 Between beats, pause ~2s after the answer lands so the collapse animation
 and the DONE line both read on video.
@@ -62,16 +68,16 @@ and the DONE line both read on video.
    0 rows — the honest gap) → retrieve_wdp_documents (14 rows).
    Talk track: "cheap discovery, expensive retrieval; absence reported
    honestly."
-4. **Q3A — same query, local-only user** (analyst-local)
+4. **Q3A — same query, local-only user** (switch User to analyst-local)
    Right-top: "4 tools — WDP tools withheld"; plan contains only local
    tools. Left: scoped answer. Talk track: "the WDP tools are never even
    listed for this user — filtering is server-side in the MCP container."
-5. **Q3B — denied person, full user** (analyst-full)
+5. **Q3B — denied person, full user** (switch User back to analyst-full)
    Right-bottom: search_wdp_person → not_authorized in red, no repair.
    Left: denial reported in the answer. Talk track: "that denial came from
    WDP's side, not ours — and both are audited."
-6. **Optional failure drill** — click Q2, Submit, then immediately in a
-   third terminal:
+6. **Optional failure drill** — paste Q2 again, Submit, then immediately
+   in a third terminal:
 
        docker compose stop fake-wdp
 

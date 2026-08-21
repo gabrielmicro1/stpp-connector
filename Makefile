@@ -40,8 +40,9 @@ demo:
 		integration-api python demo.py \
 		--dsn postgresql://stpp:stpp@postgres:5432/wdp
 
-# Bake the demo anchors into the frontend as a static file (gitignored),
-# mirroring `tokens`: presets substitute <PROPOSAL_NUMBER>/<NAME> at load.
+# Write the demo anchors to a gitignored static file. The frontend no
+# longer reads it (preset buttons are gone); `make demo` substitutes
+# anchors itself, so this is kept only as a debugging artifact.
 anchors:
 	@mkdir -p services/frontend/public
 	@docker compose run --rm -T \
